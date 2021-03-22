@@ -20,3 +20,26 @@ SETUP
 15) In command prompt change directory to poslite
 16) Copy 'poslite.py' program in this folder
 17) In command prompt type 'python poslite' 
+
+USAGE
+-----
+Create Items in Billing List:
+1) Enter a valid 10 character Barcode in the Top Entry field
+2) A new Item row will be inserted into the Item Table with corresponding Item name and Unit price.
+3) Quantity will be 1 by default
+4) Repeat the above step for 2 more valid Barcodes
+5) There will be 3 rows in the Item Table
+
+Delete an Item from Billing List:
+1) Set focus to Item table by clicking tab
+2) First row of Item table will be highlighted
+3) Using Up and Down arrow keys select the item to be deleted
+4) Click Del key
+5) The selected item will be deleted
+
+Change the Quantity of an Item in the Billing List:
+1) Set focus to Item table by clicking tab
+2) First row of Item table will be highlighted
+3) Using Up and Down arrow keys select the item for which the quantity has to be changed
+4) Click Right arrow key to increase quantity by 1
+5) Click Left arrow key to decrease quantity by 1
