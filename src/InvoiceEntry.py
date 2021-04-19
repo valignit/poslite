@@ -10,27 +10,37 @@ sg.theme('SystemDefault')
 # sg.set_options(element_padding=(0, 0))
 theme_name_list = sg.theme_list()
 # print(theme_name_list)
-w, h = sg.Window.get_screen_size()
+win_w, win_h = sg.Window.get_screen_size()
 
-col1= int(w) - int((w*30/100))
-col2= int((w*30/100))
-print(w,h,col1,col2)
+col1= int(win_w) - int((win_w*30/100))
+col2= int((win_w*30/100))
+print(win_w,win_h,col1,col2)
 print(sys.version)
 print(sys.version_info.major)
 print(platform.python_version())
 print(type(platform.python_version()))
+
+element_w = 10
+element_h = 2
+if win_w > 1250:
+    element_w=15
+    element_h=2
+
 col1_size=(col1, 50)
 col1_w=col1
-tab_h=325
+tab_h=350
 col2_w=col2
 
 bw: dict = {'size': (4, 2), 'font': ('Helvetica 11 bold'), 'button_color':("sky blue")}
 it: dict = {'readonly':'True', 'disabled_readonly_text_color':'gray','disabled_readonly_background_color':'gray89', 'font':("Helvetica", 12),'size':(15, 1)}
 in_font: dict = {'font': ('Helvetica 12')}
-btm_btn: dict = {'size':(8, 2), 'font':'Helvetica 11 bold'}
+btm_btn: dict = {'size':(10, 2), 'font':'Helvetica 11 bold'}
 sum_info: dict ={'readonly':True, 'disabled_readonly_text_color':'gray','disabled_readonly_background_color':'gray89', 'font':("Helvetica", 11),'size':(12, 1)}
 sum_info_font: dict = {'font':('Helvetica 11'), 'justification':'right', 'size':(10, 1)}
+inv_label_font: dict = {'size':(15, 1), 'font':('Helvetica 20')}
 
+
+btn_ent : dict ={'size':(element_w,element_h), 'font':'Helvetica 11 bold', 'button_color':'cornflower blue'}
 column_heading = ['Barcode', 'Item Name', 'Unit', 'Qty', 'MRP', 'Disc.', 'Price', 'Tax', 'Net']
 reader = "100000 ItemName Kg 100 26 0 26 0 2600", "100001 ItemName Kg 100 50 0 50 0 5000", "100002 ItemName Kg 100 20 0 20 0 2600", \
          "100000 ItemName Kg 100 26 0 26 0 2600", "100001 ItemName Kg 100 50 0 50 0 5000", "100002 ItemName Kg 100 20 0 20 0 2600"
@@ -41,7 +51,7 @@ col_1_Layout = [
         sg.Column(
             [
                 [
-                    sg.Text('Invoice Entry', size=(15, 1), font=("Helvetica", 20)),
+                    sg.Text('Invoice Entry', **inv_label_font),
                     sg.Text('User:', **in_font),
                     sg.Input(key='-USERID-', **it,default_text='admin'),
                     sg.Text('Terminal:', **in_font),
@@ -55,7 +65,6 @@ col_1_Layout = [
         sg.Column(
             [
                 [
-                    sg.T(' ', size=(20, 1)),
                     sg.Text('Invoice No', **in_font),
                     sg.Input(key='-INVOICE-NB-',**it),
                     sg.Text('Mobile No.:', **in_font),
@@ -70,9 +79,8 @@ col_1_Layout = [
         sg.Column(
             [
                 [
-                    sg.T(' ', size=(20, 1)),
                     sg.Text('Barcode:', size=(8, 1), font=("Helvetica", 12)),
-                    sg.Input(key='-BARCODE-NB-', background_color='White', font=("Helvetica", 12), size=(15, 1)),
+                    sg.Input(key='-BARCODE-NB-', background_color='White', font=("Helvetica", 12), size=(15, 1), focus=True),
                     sg.Text('Item Name:', size=(12, 1), font=("Helvetica", 12)),
                     sg.InputCombo(('Item Name', 'Item Name'), background_color='White', font=("Helvetica", 12),
                                   size=(40, 1))
@@ -167,7 +175,7 @@ col_2_Layout = [
                     sg.Input(key='-paid-amt-', **sum_info ,default_text='2600')
                 ]
 
-            ], size=(col2_w, 195), vertical_alignment='top')
+            ], size=(col2_w, 220), vertical_alignment='top')
     ],
     [
         sg.Column(
@@ -195,7 +203,7 @@ col_2_Layout = [
                 [
                     sg.SimpleButton('\u2190', **bw, key='T1'),
                     sg.SimpleButton('.', **bw, key='T2'),
-                    sg.SimpleButton('Enter', size=(15, 2), font='Helvetica 11 bold', key='T3', button_color='sky blue'),
+                    sg.SimpleButton('Enter', **btn_ent, key='TE'),
                 ],
                 [
                     sg.SimpleButton('+', **bw, key='T1'),
@@ -221,7 +229,7 @@ mainLayout = [
     ]
 ]
 
-window = sg.Window('POS', mainLayout, location=(0, 0), size=(w, h)
+window = sg.Window('POS', mainLayout, location=(0, 0), size=(win_w, win_h)
                    )
 
 while True:
