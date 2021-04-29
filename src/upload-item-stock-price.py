@@ -1,8 +1,8 @@
 ##################################################
 # Application: alignPOS
 # Installation: AFSM
-# CLI Program: upload-item
-# Description: Send the list of all Items along with details including Stock and Price
+# CLI Program: upload-item-stock-price
+# Description: Send the latest Item Stock and Price which got updated after the last API call
 # Version: 1.0
 # 1.0.0 - 25-04-2021: New program
 ##################################################
@@ -34,8 +34,8 @@ def print_log(msg):
 ##############################
 # Main
 ##############################
-print_log('alignPOS - Upload Item - Version 1.1')
-print_log('------------------------------------')
+print_log('alignPOS - Upload Item Stock Price - Version 1.0')
+print_log('------------------------------------------------')
 
 ######
 # Connect to ERPNext web service
@@ -46,7 +46,6 @@ ws_erp_passwd = config["ws_erp_passwd"]
 ws_erp_payload = {"usr": ws_erp_user, "pwd": ws_erp_passwd }
 
 ws_erp_method = '/api/method/login'
-
 try:
     ws_erp_resp = ws_erp_sess.post(ws_erp_host + ws_erp_method, data=ws_erp_payload)
     ws_erp_resp.raise_for_status()   
@@ -92,24 +91,8 @@ db_pos_cur = db_pos_conn.cursor()
 
 
 ######
-# Delete old Item records
-db_pos_sql_stmt = (
-    "DELETE FROM tabItem"
-)
-
-try:
-    db_pos_cur.execute(db_pos_sql_stmt)
-    db_pos_conn.commit()
-    print_log("Old Item records Deleted")
-except mariadb.Error as db_err:
-    print_log(f"POS database error: {db_err}")
-    db_pos_conn.rollback()
-    sys.exit(1)
-
-
-######
 # Fetch List of Items from ERP
-ws_erp_method = '/api/resource/Item?limit_page_length=None'
+ws_erp_method = '/api/method/get_item_stock_price?limit_page_length=None'
 try:
     ws_erp_resp = ws_erp_sess.get(ws_erp_host + ws_erp_method)
     ws_erp_resp.raise_for_status()   
@@ -133,57 +116,37 @@ except requests.exceptions.RequestException as ws_err:
 ######
 # Fetch each Item from Item List from ERP   
 item_count = 0
-for ws_erp_row_item in ws_erp_resp_json["data"]:
+for ws_erp_row_item in ws_erp_resp_json["items"]:
     item_count+=1
-    ws_erp_method = '/api/resource/Item/' + ws_erp_row_item["name"]
+    item_name = ws_erp_row_item["item_name"]
+    item_code = ws_erp_row_item["item_code"]
+    item_stock = ws_erp_row_item["shop_stock"]
+    item_selling_price = ws_erp_row_item["standard_rate"]
+   
+    db_pos_sql_stmt = (
+        "UPDATE tabItem SET stock = %s, selling_price = %s, modified = now(), modified_by = %s WHERE item_code = %s"
+    )
+    db_pos_sql_data = (item_stock, item_selling_price, ws_erp_user, item_code)
+
     try:
-        ws_erp_resp = ws_erp_sess.get(ws_erp_host + ws_erp_method)
-        ws_erp_resp.raise_for_status()   
-        ws_erp_resp_text = ws_erp_resp.text
-        ws_erp_resp_json = json.loads(ws_erp_resp_text)
-        #print_log(ws_erp_resp_json["data"]["name"])
-    except requests.exceptions.HTTPError as ws_err:
-        print_log(f"ERP web service error: {ws_err}")
-        sys.exit(1)
-    except requests.exceptions.ConnectionError as ws_err:
-        print_log(f"ERP web service error: {ws_err}")
-        sys.exit(1)
-    except requests.exceptions.Timeout as ws_err:
-        print_log(f"ERP web service error: {ws_err}")
-        sys.exit(1)
-    except requests.exceptions.RequestException as ws_err:
-        print_log(f"ERP web service error: {ws_err}")
+        db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
+        db_pos_conn.commit()
+        print_log(f"Updated Item: {item_code}")
+    except mariadb.Error as db_err:
+        print_log(f"POS database error: {db_err}")
+        db_pos_conn.rollback()
         sys.exit(1)
 
-    item_name = ws_erp_resp_json["data"]["name"]
-    item_code = ws_erp_resp_json["data"]["item_code"]
-    item_item_name = ws_erp_resp_json["data"]["item_name"]
-    item_group = ws_erp_resp_json["data"]["item_group"]
-    item_stock = ws_erp_resp_json["data"]["shop_stock"]
-    item_selling_price = ws_erp_resp_json["data"]["standard_rate"]
-    
-    # Pick first uom of the Item 
-    for uom in ws_erp_resp_json["data"]["uoms"]:
-        item_uom = uom["uom"]
-        #print_log(item_uom)
-        break
+last_update_date_time = ws_erp_resp_json["date"]
 
-    # Pick first barcode of the Item 
-    for barcode in ws_erp_resp_json["data"]["barcodes"]:
-        item_barcode = barcode["name"]
-        #print_log(item_barcode)
-        break
+if (item_count > 0):
+    ######
+    # Update Last update date time
+    ws_erp_payload = {"date": last_update_date_time }
 
-    # Pick first Tax template of the Item     
-    for tax in ws_erp_resp_json["data"]["taxes"]:
-        item_tax_template = tax["item_tax_template"]
-        #print_log(item_tax_template)        
-        break
-
-    # Fetch Item Tax Template details 
-    ws_erp_method = '/api/resource/Item Tax Template/' 
+    ws_erp_method = '/api/method/put_item_sync_date_time'
     try:
-        ws_erp_resp = ws_erp_sess.get(ws_erp_host + ws_erp_method + item_tax_template)
+        ws_erp_resp = ws_erp_sess.put(ws_erp_host + ws_erp_method, json=ws_erp_payload)
         ws_erp_resp.raise_for_status()   
         ws_erp_resp_text = ws_erp_resp.text
         ws_erp_resp_json = json.loads(ws_erp_resp_text)
@@ -201,33 +164,11 @@ for ws_erp_row_item in ws_erp_resp_json["data"]:
         print_log(f"ERP web service error: {ws_err}")
         sys.exit(1)
 
-    # Pick first Tax rate from Tax Template
-    for tax in ws_erp_resp_json["data"]["taxes"]:
-        item_tax_rate = tax["tax_rate"]
-        #print_log(item_tax_rate)        
-        break
-
-    db_pos_sql_stmt = (
-       "INSERT INTO tabItem (name, item_code, item_name, item_group, barcode, uom, stock, selling_price, item_tax_rate, creation, owner)"
-       "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, now(), %s)"
-    )
-    db_pos_sql_data = (item_name, item_code, item_item_name, item_group, item_barcode, item_uom, item_stock, item_selling_price, item_tax_rate, ws_erp_user)
-
-    try:
-        db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
-        db_pos_conn.commit()
-        print_log(f"Inserted Item: {item_name}")
-    except mariadb.Error as db_err:
-        print_log(f"POS database error: {db_err}")
-        db_pos_conn.rollback()
-        sys.exit(1)
-
-
-print_log(f"Total Items Inserted: {item_count}")
+print_log(f"Total Items Updated: {item_count}")
 
 ######    
 # Closing DB connection
 db_pos_conn.close()
  
-print_log("Item Upload process completed")
+print_log("Item Stock Price Upload process completed")
 file_log.close()
