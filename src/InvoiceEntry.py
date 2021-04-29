@@ -6,6 +6,50 @@ from datetime import date
 import tkinter as tk
 from tkinter import *
 from tkinter.ttk import *
+#import src.DBOperations
+from DBOperations import DBOperations
+
+
+db_pos_host = "localhost"
+db_pos_port = 3306
+db_pos_name = "alignpos"
+db_pos_user = "alignpos"
+db_pos_passwd = "valignit@2021"
+
+column_heading = ['Barcode', 'Item Name', 'Unit', 'Qty', 'MRP', 'Disc.', 'Price', 'Tax', 'Net']
+reader = "100000 ItemName Kg 100 26 0 26 0 2600", "100001 ItemName Kg 100 50 0 50 0 5000", "100002 ItemName Kg 100 20 0 20 0 2600", \
+         "100000 ItemName Kg 100 26 0 26 0 2600", "100001 ItemName Kg 100 50 0 50 0 5000", "100002 ItemName Kg 100 20 0 20 0 2600"
+#data1= ['100000 ItemName Kg 100 26 0 26 0 2600', '100001 ItemName Kg 100 50 0 50 0 5000', '100002 ItemName Kg 100 20 0 20 0 2600', '100000 ItemName Kg 100 26 0 26 0 2600', '100001 ItemName Kg 100 50 0 50 0 5000', '100002 ItemName Kg 100 20 0 20 0 2600']
+reader = ""
+
+data1 = list(reader)
+print('data1=',data1)
+data = list(reader)
+#data = [['1','2','3','4','5','6','7','8','9']]
+#data = [['8901314010322', 'Colgate strong teeth 150g', 'Nos', Decimal('70.000000'), Decimal('12.000000'), Decimal('12.000000'), Decimal('12.000000'), Decimal('12.000000')]]
+itemData = ['8901314010322', '8906083130714', '8901030672446', '8902102162285', '8906033740758']
+
+dbOperation = DBOperations(db_pos_host,db_pos_port,db_pos_name,db_pos_user,db_pos_passwd)
+
+def searchItemData(event):
+    if len(window['Item-Name'].get()) > 2:
+        global itemData
+        matches = []
+        print('search item data',window['Item-Name'].get())
+        searchItem =window['Item-Name'].get()
+        window.Element('Item-Name').update(values=matches)
+        matches = [match for match in itemData if searchItem in match]
+        print("matches", matches)
+        window.Element('Item-Name').update(values=matches)
+
+def loadItemName():
+    itemData = [['8901314010322'], ['8906083130714'], ['8901030672446'], ['8902102162285'], ['8906033740758']]
+
+def exitPos():
+    print('Exit Pos')
+
+def deleteItem():
+    print('Delete Item')
 
 def verifyIn():
     print('focus in')
@@ -14,59 +58,22 @@ def verifyOut(event):
     barcode = window['-BARCODE-NB-'].get()
     if len(barcode) > 9:
         print(f'focuse out=',window['-BARCODE-NB-'].get())
-        itemdata = fetchItemData(barcode)
-        data = itemdata
+        global data
+        if any(barcode in data_list for data_list in data):
+            return
+        #if barcode in data:
+         #   return
+
+        itemdata = dbOperation.fetchItemData(barcode)
+        print("data=",len(data))
+        if len(data) > 0:
+            data += itemdata
+        else:
+            data = itemdata
         print('item data =', data)
         #data = [['1','2','3','4','5','6','7','8','9']]
         #data = [['8901314010322', 'Colgate strong teeth 150g', 'Nos', '70.000000', '12.000000','12.000000', '12.000000', '12.000000']]
         window['-TABLE-'].update(values=data)
-
-
-def fetchItemData(barcode):
-    query = "SELECT barcode,item_name, uom, FORMAT(selling_price,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2) FROM tabItem where barCode='" + barcode + "';"
-    try:
-        db_pos_cur = db_pos_conn.cursor()
-        db_pos_cur.execute(query)
-        #print('fetchdata=', db_pos_cur.fetchall())
-        #for row in db_pos_cur.fetchall():
-        #    print(row)
-        # Returns a list of lists
-        from_db = []
-        for result in db_pos_cur.fetchall():
-            result = list(result)
-            print('result=',result)
-            from_db.append(result)
-    except mariadb.Error as db_err:
-        print(f"POS database error: {db_err}")
-        db_pos_conn.rollback()
-        sys.exit(1)
-
-    return list(from_db)
-
-db_pos_host = "localhost"
-db_pos_port = 3306
-db_pos_name = "alignpos"
-db_pos_user = "alignpos"
-db_pos_passwd = "valignit@2021"
-
-try:
-    db_pos_conn = mariadb.connect(
-        user=db_pos_user,
-        password=db_pos_passwd,
-        host=db_pos_host,
-        port=db_pos_port,
-        database=db_pos_name
-    )
-    print("POS database connected")
-
-except mariadb.Error as db_err:
-    print(f"POS database error: {db_err}")
-    sys.exit(1)
-db_pos_cur = db_pos_conn.cursor()
-
-
-def closeDBCon():
-    db_pos_conn.close()
 
 def tableFocus():
     # Re-Grab table focus using ttk
@@ -87,7 +94,7 @@ def disableFocus():
     window['-CUSTOMER-'].Widget.config(takefocus=0)
 
     window['F1'].Widget.config(takefocus=0)
-    window['F2'].Widget.config(takefocus=0)
+    #window['F2'].Widget.config(takefocus=0)
     window['F3'].Widget.config(takefocus=0)
     window['F4'].Widget.config(takefocus=0)
     window['F5'].Widget.config(takefocus=0)
@@ -168,21 +175,8 @@ btm_btn: dict = {'size':(10, 2), 'font':'Helvetica 11 bold'}
 sum_info: dict ={'readonly':True, 'disabled_readonly_text_color':'gray','disabled_readonly_background_color':'gray89', 'font':("Helvetica", 11),'size':(12, 1)}
 sum_info_font: dict = {'font':('Helvetica 11'), 'justification':'right', 'size':(10, 1)}
 inv_label_font: dict = {'size':(15, 1), 'font':('Helvetica 20')}
-
-
 btn_ent : dict ={'size':(element_w,element_h), 'font':'Helvetica 11 bold', 'button_color':'cornflower blue'}
-column_heading = ['Barcode', 'Item Name', 'Unit', 'Qty', 'MRP', 'Disc.', 'Price', 'Tax', 'Net']
-reader = "100000 ItemName Kg 100 26 0 26 0 2600", "100001 ItemName Kg 100 50 0 50 0 5000", "100002 ItemName Kg 100 20 0 20 0 2600", \
-         "100000 ItemName Kg 100 26 0 26 0 2600", "100001 ItemName Kg 100 50 0 50 0 5000", "100002 ItemName Kg 100 20 0 20 0 2600"
-#data1= ['100000 ItemName Kg 100 26 0 26 0 2600', '100001 ItemName Kg 100 50 0 50 0 5000', '100002 ItemName Kg 100 20 0 20 0 2600', '100000 ItemName Kg 100 26 0 26 0 2600', '100001 ItemName Kg 100 50 0 50 0 5000', '100002 ItemName Kg 100 20 0 20 0 2600']
-reader = ""
 
-
-data1 = list(reader)
-print('data1=',data1)
-data = list(reader)
-#data = [['1','2','3','4','5','6','7','8','9']]
-#data = [['8901314010322', 'Colgate strong teeth 150g', 'Nos', Decimal('70.000000'), Decimal('12.000000'), Decimal('12.000000'), Decimal('12.000000'), Decimal('12.000000')]]
 col_1_Layout = [
     [
         sg.Column(
@@ -219,8 +213,8 @@ col_1_Layout = [
                     sg.Text('Barcode:', size=(8, 1), font=("Helvetica", 12)),
                     sg.Input(key='-BARCODE-NB-', background_color='White', font=("Helvetica", 12), size=(15, 1), focus=True,enable_events=True),
                     sg.Text('Item Name:', size=(12, 1), font=("Helvetica", 12)),
-                    sg.InputCombo(('Item Name', 'Item Name'), background_color='White', font=("Helvetica", 12),
-                                  size=(40, 1), enable_events=True, key='Item-Name' )
+                    sg.InputCombo(('8901314010322'), background_color='White', font=("Helvetica", 12),
+                                  size=(40, 30), key='Item-Name' )
                 ]
             ], size=col1_size, vertical_alignment='top')
     ],
@@ -258,12 +252,12 @@ col_1_Layout = [
                     sg.SimpleButton('F6\nGet Weight', border_width=2, **btm_btn, key='F6')
                 ],
                 [
-                    sg.SimpleButton('F7\nGet Weight',border_width=2, **btm_btn, key='F7'),
-                    sg.SimpleButton('F8\nNew Invoice', border_width=2 ,**btm_btn, key='F8'),
-                    sg.SimpleButton('F9\nDel Invoice', border_width=2,**btm_btn, key='F9'),
-                    sg.SimpleButton('F10\nLookup Cust', border_width=2,**btm_btn, key='F10'),
-                    sg.SimpleButton('F11\nList Invoices', border_width=2,**btm_btn, key='F11'),
-                    sg.SimpleButton('F12\nPrint Invoices', border_width=2,**btm_btn, key='F12'),
+                    sg.SimpleButton('F7\nNew Invoice',border_width=2, **btm_btn, key='F7'),
+                    sg.SimpleButton('F8\nDel Invoice', border_width=2 ,**btm_btn, key='F8'),
+                    sg.SimpleButton('F9\nLookup Cust', border_width=2,**btm_btn, key='F9'),
+                    sg.SimpleButton('F10\nList Invoices', border_width=2,**btm_btn, key='F10'),
+                    sg.SimpleButton('F11\nPrint Invoices', border_width=2,**btm_btn, key='F11'),
+                    sg.SimpleButton('F12\nPayment', border_width=2,**btm_btn, key='F12'),
                     sg.SimpleButton('Esc-Exit', border_width=2,**btm_btn, key='ESC')
 
                 ]
@@ -370,21 +364,44 @@ mainLayout = [
 ]
 window = sg.Window('POS', mainLayout, location=(0, 0), size=(win_w, win_h), use_default_focus=False, finalize=True, resizable=True)
 
-#window.bind("<FocusOut>",verifyOut)
-#window.bind("<FocusIn>",verifyIn)
-
 #window['-BARCODE-NB-'].bind('<FocusOut>', verifyOut)
-#window['-BARCODE-NB-'].bind('<FocusOut>',lambda event,arg='Left':verifyOut(event,arg))
 window['-BARCODE-NB-'].Widget.bind('<FocusOut>', verifyOut)
+window['Item-Name'].Widget.bind('<Key>', searchItemData)
+#window['F2'].Widget.bind('<F2>', deleteItem)
+#window['F2'].Widget.bind('<F2>', window['F2'].deleteItem)
+window.bind('<F1>', '')
+window.bind('<F2>', deleteItem())
+window.bind('<F3>', '')
+window.bind('<F4>', '')
+window.bind('<F5>', '')
+window.bind('<F6>', '')
+window.bind('<F7>', '')
+window.bind('<F8>', '')
+window.bind('<F9>', '')
+window.bind('<F10>', '')
+window.bind('<F11>', '')
+window.bind('<F12>', '')
+window.bind('<Escape>', exitPos())
 
 disableFocus()
 tableFocus()
+loadItemName()
+selected_row = None
 
 while True:
     event, values = window.read()
     #print(event, values)
+    if event == '<F2>':
+        print("deleting selected items...")
+        if selected_row is not None:
+            data.pop(selected_row)
+            selected_row = None
+            window.Element('-TABLE-').update(values=data)
     if event == sg.WIN_CLOSED:
         break
-
-
-#8901314010322
+    if event == '<Escape>':
+        if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
+            break
+    if event == '-TABLE-':
+        selected_row = values['-TABLE-'][0]
+        print("select row ", selected_row)
