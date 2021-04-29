@@ -1,0 +1,68 @@
+CREATE DATABASE alignpos;
+
+USE alignpos;
+
+CREATE TABLE `tabItem` (
+  `name` varchar(140) NOT NULL,
+  `item_code` varchar(140) DEFAULT NULL,
+  `item_name` varchar(140) DEFAULT NULL,
+  `item_group` varchar(140) DEFAULT NULL,
+  `barcode` varchar(140) DEFAULT NULL,
+  `uom` varchar(140) DEFAULT NULL,
+  `stock` decimal(18,6) DEFAULT NULL,
+  `selling_price` decimal(18,6) DEFAULT NULL,
+  `item_tax_rate` decimal(18,6) DEFAULT NULL,
+  `creation` datetime(6) DEFAULT NULL,
+  `modified` datetime(6) DEFAULT NULL,
+  `modified_by` varchar(140) DEFAULT NULL,
+  `owner` varchar(140) DEFAULT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `tabCustomer` (
+  `name` varchar(140) NOT NULL,
+  `customer_name` varchar(140) DEFAULT NULL,
+  `customer_type` varchar(140) DEFAULT NULL,
+  `address` varchar(140) DEFAULT NULL,
+  `mobile_number` varchar(140) DEFAULT NULL,
+  `loyalty_points_earned` int(6) DEFAULT NULL,
+  `creation` datetime(6) DEFAULT NULL,
+  `modified` datetime(6) DEFAULT NULL,
+  `modified_by` varchar(140) DEFAULT NULL,
+  `owner` varchar(140) DEFAULT NULL,
+  PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `tabInvoice` (
+  `name` varchar(140) NOT NULL,
+  `posting_date` datetime(6) DEFAULT NULL,
+  `customer` varchar(140) DEFAULT NULL,
+  `loyalty_points_redeemed` int(6) DEFAULT NULL,
+  `creation` datetime(6) DEFAULT NULL,
+  `modified` datetime(6) DEFAULT NULL,
+  `modified_by` varchar(140) DEFAULT NULL,
+  `owner` varchar(140) DEFAULT NULL,
+  PRIMARY KEY (`name`),
+  KEY `FK_tabInvoice_tabCustomer` (`customer`),
+  CONSTRAINT `FK_tabInvoice_tabCustomer` FOREIGN KEY (`customer`) REFERENCES `tabCustomer` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `tabInvoice Item` (
+  `parent` varchar(140) NOT NULL,
+  `item_code` varchar(140) NOT NULL,
+  `qty` decimal(18,6) DEFAULT NULL,
+  `selling_amount` decimal(18,6) DEFAULT NULL,
+  `tax_amount` decimal(18,6) DEFAULT NULL,
+  `discount_amount` decimal(18,6) DEFAULT NULL,
+  PRIMARY KEY (`parent`,`item_code`),
+  KEY `FK_tabInvoice Item_tabItem` (`item_code`),
+  CONSTRAINT `FK_tabInvoice Item_tabItem` FOREIGN KEY (`item_code`) REFERENCES `tabItem` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `tabInvoice Payment` (
+  `parent` varchar(140) DEFAULT NULL,
+  `mode_of_payment` varchar(140) DEFAULT NULL,
+  `reference_no` varchar(140) DEFAULT NULL,
+  `reference_date` date DEFAULT NULL,
+  `received_amount` decimal(18,6) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
