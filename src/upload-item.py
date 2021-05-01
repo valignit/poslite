@@ -161,6 +161,8 @@ for ws_erp_row_item in ws_erp_resp_json["data"]:
     item_group = ws_erp_resp_json["data"]["item_group"]
     item_stock = ws_erp_resp_json["data"]["shop_stock"]
     item_selling_price = ws_erp_resp_json["data"]["standard_rate"]
+    item_maximum_retail_price = ws_erp_resp_json["data"]["maximum_retail_price"]
+    print(str(item_selling_price),',',str(item_maximum_retail_price))
     
     # Pick first uom of the Item 
     for uom in ws_erp_resp_json["data"]["uoms"]:
@@ -201,17 +203,20 @@ for ws_erp_row_item in ws_erp_resp_json["data"]:
         print_log(f"ERP web service error: {ws_err}")
         sys.exit(1)
 
-    # Pick first Tax rate from Tax Template
+    # Pick Tax rates from Tax Template
     for tax in ws_erp_resp_json["data"]["taxes"]:
-        item_tax_rate = tax["tax_rate"]
+        if tax["tax_type"] == 'CGST - AFSM':
+            item_cgst_rate = tax["tax_rate"]
+        if tax["tax_type"] == 'SGST - AFSM':
+            item_sgst_rate = tax["tax_rate"]
+             
         #print_log(item_tax_rate)        
-        break
 
     db_pos_sql_stmt = (
-       "INSERT INTO tabItem (name, item_code, item_name, item_group, barcode, uom, stock, selling_price, item_tax_rate, creation, owner)"
-       "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, now(), %s)"
+       "INSERT INTO tabItem (name, item_code, item_name, item_group, barcode, uom, stock, selling_price, maximum_retail_price, item_cgst_rate, item_sgst_rate, creation, owner)"
+       "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now(), %s)"
     )
-    db_pos_sql_data = (item_name, item_code, item_item_name, item_group, item_barcode, item_uom, item_stock, item_selling_price, item_tax_rate, ws_erp_user)
+    db_pos_sql_data = (item_name, item_code, item_item_name, item_group, item_barcode, item_uom, item_stock, item_selling_price, item_maximum_retail_price, item_cgst_rate, item_sgst_rate, ws_erp_user)
 
     try:
         db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
