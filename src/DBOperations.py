@@ -32,7 +32,6 @@ class DBOperations:
         sys.exit(1)
     db_pos_cur = db_pos_conn.cursor()
 
-
     def fetchItemData(self,barcode):
         query = "SELECT barcode,item_name, uom, FORMAT(selling_price,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2) FROM tabItem where barCode='" + barcode + "';"
         try:
@@ -54,6 +53,29 @@ class DBOperations:
             sys.exit(1)
 
         return list(from_db)
+
+    def fetchItemName(self):
+        query = "SELECT CONCAT(item_name,'~',barcode) AS ItemName FROM tabItem;"
+        try:
+            #self.getDBConnection
+            db_pos_cur = self.db_pos_conn.cursor()
+            db_pos_cur.execute(query)
+            # print('fetchdata=', db_pos_cur.fetchall())
+            # for row in db_pos_cur.fetchall():
+            #    print(row)
+            # Returns a list of lists
+            from_db = []
+            for result in db_pos_cur.fetchall():
+               # sresult = result
+                print('itemname=', result[0])
+                from_db.append(result[0])
+        except mariadb.Error as db_err:
+            print(f"POS database error: {db_err}")
+            self.db_pos_conn.rollback()
+            sys.exit(1)
+
+        return from_db
+
 
     def closeDBCon(self):
         db_pos_conn.close()

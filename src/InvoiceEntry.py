@@ -1,3 +1,5 @@
+import re
+
 import PySimpleGUI as sg
 import sys
 import mariadb
@@ -6,7 +8,7 @@ from datetime import date
 import tkinter as tk
 from tkinter import *
 from tkinter.ttk import *
-#import src.DBOperations
+from tkinter import ttk
 from DBOperations import DBOperations
 
 
@@ -30,9 +32,88 @@ data = list(reader)
 itemData = ['8901314010322', '8906083130714', '8901030672446', '8902102162285', '8906033740758']
 
 dbOperation = DBOperations(db_pos_host,db_pos_port,db_pos_name,db_pos_user,db_pos_passwd)
+itemNames = dbOperation.fetchItemName()
+
+def loadItemName():
+    #itemData = [['8901314010322'], ['8906083130714'], ['8901030672446'], ['8902102162285'], ['8906033740758']]
+    itemNames = dbOperation.fetchItemName()
+    print("item data = ", itemNames)
+
+
+def predict_text(searchItem, listItem):
+    print('recied= ' ,searchItem, listItem)
+    pattern = re.compile('.*' + searchItem + '.*')
+    return [w for w in listItem if re.match(pattern, w)]
+
+    #matches = []
+    #matches = [match for match in listItem if searchItem in match]
+    #return matches
+
+def open_window():
+    # print(predict_text('1', ['123']))
+    choices = ['item-' + str(i) for i in range(30)]
+    print("choices=", choices)
+    # print(predict_text('1', values))
+    # print(values)
+    global itemNames
+    layout = [  [sg.Text('Search Item:')],
+                [sg.In(key='_INPUT_', size=(100,1))],
+                [sg.Listbox(itemNames,  size=(100,10), key='_COMBO_', change_submits=True)],
+                [sg.Button('Exit')]
+             ]
+
+    window1 = sg.Window('Window Title', keep_on_top=True ,size=(400,300),return_keyboard_events=True).Layout(layout)
+
+    list_elem = window1.Element('_COMBO_')
+
+    sel_item = 0
+    while True:             # Event Loop
+        event, values = window1.Read()
+        if event is None or event == 'Exit':
+            #window.FindElement('-BARCODE-NB-')
+            window1.Close()
+            break
+
+        in_val = values['_INPUT_']
+        if len(in_val) >=2:
+            prediction_list = predict_text(str(in_val), itemNames)
+            list_elem.Update(values=prediction_list)
+            if prediction_list:
+                print('list fired',prediction_list[0])
+               # window.Element('_OUTPUT_').Update(prediction_list[0])
+                #global window
+               # values['-BARCODE-NB-'] =  prediction_list[0]
+                justName = str(prediction_list[0]).split('~')
+                window.FindElement('-ITEMNAME-').Update(justName[0])
+                window.FindElement('-BARCODE-NB-').Update(justName[1])
+                list_elem.Widget.itemconfigure(0,bg='green',fg='white')
+        else:
+            list_elem.Update(values=itemNames)
+        if event == '_COMBO_':
+            #sg.Popup('Chose', values['_COMBO_'])
+            print('Chose2', values['_COMBO_'])
+            #window.FindElement('-ITEMNAME-').Update(values['_COMBO_'])
+            justName = str(values['_COMBO_']).split('~')
+            window.FindElement('-ITEMNAME-').Update(justName[0])
+            window.FindElement('-BARCODE-NB-').Update(justName[1])
+
+
+
+"""
+def open_window():
+
+    layout = [[sg.Text("New Window", key="new")]]
+    window = sg.Window("Second Window", layout, modal=True)
+    choice = None
+    while True:
+        event, values = window.read()
+        if event == "Exit" or event == sg.WIN_CLOSED:
+            break
+    window.close()
+"""
 
 def searchItemData(event):
-    if len(window['Item-Name'].get()) > 2:
+    if len(window['Item-Name'].get()) >= 2:
         global itemData
         matches = []
         print('search item data',window['Item-Name'].get())
@@ -41,9 +122,9 @@ def searchItemData(event):
         matches = [match for match in itemData if searchItem in match]
         print("matches", matches)
         window.Element('Item-Name').update(values=matches)
-
-def loadItemName():
-    itemData = [['8901314010322'], ['8906083130714'], ['8901030672446'], ['8902102162285'], ['8906033740758']]
+        #window['Item-Name'].Widget.set(searchItem)
+        window['Item-Name'].Widget.current(0)
+        #window['Item-Name'].values[0]='test'
 
 def exitPos():
     print('Exit Pos')
@@ -138,7 +219,6 @@ def disableFocus():
     window['TDT'].Widget.config(takefocus=0)
     window['TCL'].Widget.config(takefocus=0)
 
-
 today = date.today()
 
 # sg.ChangeLookAndFeel('GreenTan')
@@ -147,6 +227,8 @@ sg.theme('SystemDefault')
 theme_name_list = sg.theme_list()
 # print(theme_name_list)
 win_w, win_h = sg.Window.get_screen_size()
+win_w = win_w - 100
+win_h = win_h - 100
 
 col1= int(win_w) - int((win_w*30/100))
 col2= int((win_w*30/100))
@@ -176,6 +258,8 @@ sum_info: dict ={'readonly':True, 'disabled_readonly_text_color':'gray','disable
 sum_info_font: dict = {'font':('Helvetica 11'), 'justification':'right', 'size':(10, 1)}
 inv_label_font: dict = {'size':(15, 1), 'font':('Helvetica 20')}
 btn_ent : dict ={'size':(element_w,element_h), 'font':'Helvetica 11 bold', 'button_color':'cornflower blue'}
+
+wvar = tk.StringVar
 
 col_1_Layout = [
     [
@@ -213,8 +297,10 @@ col_1_Layout = [
                     sg.Text('Barcode:', size=(8, 1), font=("Helvetica", 12)),
                     sg.Input(key='-BARCODE-NB-', background_color='White', font=("Helvetica", 12), size=(15, 1), focus=True,enable_events=True),
                     sg.Text('Item Name:', size=(12, 1), font=("Helvetica", 12)),
-                    sg.InputCombo(('8901314010322'), background_color='White', font=("Helvetica", 12),
-                                  size=(40, 30), key='Item-Name' )
+                    sg.InputCombo(('8901314010322'), background_color='White' ,auto_size_text=True, font=("Helvetica", 12),
+                                  size=(20, 20), key='Item-Name' ),
+                    sg.Input(key='-ITEMNAME-', background_color='White', font=("Helvetica", 12), size=(15, 1)),
+                    sg.Button('Search Item', border_width=2,**btm_btn , key='-SEARCH-ITME-'),
                 ]
             ], size=col1_size, vertical_alignment='top')
     ],
@@ -244,21 +330,21 @@ col_1_Layout = [
         sg.Column(
             [
                 [
-                    sg.SimpleButton('F1\nHelp', border_width=2,**btm_btn , key='F1'),
-                    sg.SimpleButton('F2\nDel Item', border_width=2, **btm_btn, key='F2'),
-                    sg.SimpleButton('F3\nLookup', border_width=2, **btm_btn, key='F3'),
-                    sg.SimpleButton('F4\nChange Qty', border_width=2, **btm_btn, key='F4'),
-                    sg.SimpleButton('F5\nChange Price', border_width=2, **btm_btn, key='F5'),
-                    sg.SimpleButton('F6\nGet Weight', border_width=2, **btm_btn, key='F6')
+                    sg.Button('F1\nHelp', border_width=2,**btm_btn , key='F1'),
+                    sg.Button('F2\nDel Item', border_width=2, **btm_btn, key='F2'),
+                    sg.Button('F3\nLookup', border_width=2, **btm_btn, key='F3'),
+                    sg.Button('F4\nChange Qty', border_width=2, **btm_btn, key='F4'),
+                    sg.Button('F5\nChange Price', border_width=2, **btm_btn, key='F5'),
+                    sg.Button('F6\nGet Weight', border_width=2, **btm_btn, key='F6')
                 ],
                 [
-                    sg.SimpleButton('F7\nNew Invoice',border_width=2, **btm_btn, key='F7'),
-                    sg.SimpleButton('F8\nDel Invoice', border_width=2 ,**btm_btn, key='F8'),
-                    sg.SimpleButton('F9\nLookup Cust', border_width=2,**btm_btn, key='F9'),
-                    sg.SimpleButton('F10\nList Invoices', border_width=2,**btm_btn, key='F10'),
-                    sg.SimpleButton('F11\nPrint Invoices', border_width=2,**btm_btn, key='F11'),
-                    sg.SimpleButton('F12\nPayment', border_width=2,**btm_btn, key='F12'),
-                    sg.SimpleButton('Esc-Exit', border_width=2,**btm_btn, key='ESC')
+                    sg.Button('F7\nNew Invoice',border_width=2, **btm_btn, key='F7'),
+                    sg.Button('F8\nDel Invoice', border_width=2 ,**btm_btn, key='F8'),
+                    sg.Button('F9\nLookup Cust', border_width=2,**btm_btn, key='F9'),
+                    sg.Button('F10\nList Invoices', border_width=2,**btm_btn, key='F10'),
+                    sg.Button('F11\nPrint Invoices', border_width=2,**btm_btn, key='F11'),
+                    sg.Button('F12\nPayment', border_width=2,**btm_btn, key='F12'),
+                    sg.Button('Esc-Exit', border_width=2,**btm_btn, key='ESC')
 
                 ]
             ], size=(col1_w, 150), vertical_alignment='top')
@@ -316,35 +402,35 @@ col_2_Layout = [
         sg.Column(
             [
                 [
-                    sg.SimpleButton('\u2191', **btn_pad , key='TUP'),
-                    sg.SimpleButton('7', **btn_pad , key='T7'),
-                    sg.SimpleButton('8', **btn_pad , key='T8'),
-                    sg.SimpleButton('9', **btn_pad , key='T9'),
+                    sg.Button('\u2191', **btn_pad , key='TUP'),
+                    sg.Button('7', **btn_pad , key='T7'),
+                    sg.Button('8', **btn_pad , key='T8'),
+                    sg.Button('9', **btn_pad , key='T9'),
 
                 ],
                 [
-                    sg.SimpleButton('\u2193', **btn_pad ,key='TDN'),
-                    sg.SimpleButton('4', **btn_pad ,key='T4' ),
-                    sg.SimpleButton('5', **btn_pad ,key='T5' ),
-                    sg.SimpleButton('6', **btn_pad , key='T6' ),
+                    sg.Button('\u2193', **btn_pad ,key='TDN'),
+                    sg.Button('4', **btn_pad ,key='T4' ),
+                    sg.Button('5', **btn_pad ,key='T5' ),
+                    sg.Button('6', **btn_pad , key='T6' ),
                 ],
                 [
-                    sg.SimpleButton('\u2192', **btn_pad, key='TRT'),
-                    sg.SimpleButton('1', **btn_pad, key='T1'),
-                    sg.SimpleButton('2', **btn_pad, key='T2'),
-                    sg.SimpleButton('3', **btn_pad, key='T3'),
+                    sg.Button('\u2192', **btn_pad, key='TRT'),
+                    sg.Button('1', **btn_pad, key='T1'),
+                    sg.Button('2', **btn_pad, key='T2'),
+                    sg.Button('3', **btn_pad, key='T3'),
 
                 ],
                 [
-                    sg.SimpleButton('\u2190', **btn_pad, key='TLT'),
-                    sg.SimpleButton('0', **btn_pad, key='TZR'),
-                    sg.SimpleButton('Enter', **btn_ent, key='TEN'),
+                    sg.Button('\u2190', **btn_pad, key='TLT'),
+                    sg.Button('0', **btn_pad, key='TZR'),
+                    sg.Button('Enter', **btn_ent, key='TEN'),
                 ],
                 [
-                    sg.SimpleButton('Up', **btn_pad_pg, key='TPU'),
-                    sg.SimpleButton('Dn', **btn_pad_pg, key='TPD'),
-                    sg.SimpleButton('.', **btn_pad, key='TDT'),
-                    sg.SimpleButton('C', **btn_pad, key='TCL')
+                    sg.Button('Up', **btn_pad_pg, key='TPU'),
+                    sg.Button('Dn', **btn_pad_pg, key='TPD'),
+                    sg.Button('.', **btn_pad, key='TDT'),
+                    sg.Button('C', **btn_pad, key='TCL')
                 ]
             ], size=(col2_w, 290), vertical_alignment='top')
     ],
@@ -366,7 +452,7 @@ window = sg.Window('POS', mainLayout, location=(0, 0), size=(win_w, win_h), use_
 
 #window['-BARCODE-NB-'].bind('<FocusOut>', verifyOut)
 window['-BARCODE-NB-'].Widget.bind('<FocusOut>', verifyOut)
-window['Item-Name'].Widget.bind('<Key>', searchItemData)
+window['Item-Name'].Widget.bind('<Enter>', searchItemData)
 #window['F2'].Widget.bind('<F2>', deleteItem)
 #window['F2'].Widget.bind('<F2>', window['F2'].deleteItem)
 window.bind('<F1>', '')
@@ -398,6 +484,7 @@ while True:
             selected_row = None
             window.Element('-TABLE-').update(values=data)
     if event == sg.WIN_CLOSED:
+        print('close window')
         break
     if event == '<Escape>':
         if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
@@ -405,3 +492,6 @@ while True:
     if event == '-TABLE-':
         selected_row = values['-TABLE-'][0]
         print("select row ", selected_row)
+    if event == "-SEARCH-ITME-":
+        print('search item')
+        open_window()
