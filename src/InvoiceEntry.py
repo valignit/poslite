@@ -49,6 +49,34 @@ def predict_text(searchItem, listItem):
     #matches = [match for match in listItem if searchItem in match]
     #return matches
 
+
+def login_window():
+    buttonLayout = [[sg.Button('Ok', pad=((0,0),(20,0)),key='-LoginOk-'), sg.Button('Cancel',pad=((0,0),(20,0)),key='-LoginCancel-')]]
+    layout = [
+              [sg.Text(' ',key='ErrMsg',size=(100,1)) ],
+              [sg.Text('User Name:',pad=((0,0),(30,0)),size=(10,1)),sg.In(key='-LOGINUSER-', pad=((0,0),(30,0)) ,size=(100, 1))],
+              [sg.Text('Password:',pad=((0,0),(10,0)),size=(10,1)),sg.In(key='-LOGINPWD-', password_char='*' , pad=((0,0),(10,0)), size=(100, 1))],
+              [sg.Column(buttonLayout,vertical_alignment='center', justification='center') ]
+              ]
+
+    loginWindow = sg.Window('Login Window', keep_on_top=True, size=(300, 200), return_keyboard_events=True).Layout(layout)
+
+    while True:             # Event Loop
+        event, values = loginWindow.Read()
+        if event is None or event == sg.WIN_CLOSED or event == '-LoginCancel-':
+            loginWindow.Close()
+            window.Close()
+            break
+        if event == '-LoginOk-':
+            uid = loginWindow['-LOGINUSER-'].Get()
+            pwd = loginWindow['-LOGINPWD-'].Get()
+            print('login details',uid,pwd)
+            if uid == 'admin' and pwd == '1234':
+                print('Login successfull...')
+                loginWindow.close()
+            else:
+                loginWindow['ErrMsg'].update('Invalid Credential')
+
 def open_window():
     # print(predict_text('1', ['123']))
     choices = ['item-' + str(i) for i in range(30)]
@@ -474,6 +502,8 @@ tableFocus()
 loadItemName()
 selected_row = None
 
+login_window()
+
 while True:
     event, values = window.read()
     #print(event, values)
@@ -485,7 +515,9 @@ while True:
             window.Element('-TABLE-').update(values=data)
     if event == sg.WIN_CLOSED:
         print('close window')
-        break
+        if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
+            break
+
     if event == '<Escape>':
         if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
             break
@@ -495,3 +527,6 @@ while True:
     if event == "-SEARCH-ITME-":
         print('search item')
         open_window()
+    if event == "ESC":
+        if sg.popup_yes_no('Do you want to Exit?', title='Confirmation', keep_on_top=True) == 'Yes':
+            break
