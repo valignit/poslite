@@ -60,22 +60,38 @@ def login_window():
               ]
 
     loginWindow = sg.Window('Login Window', keep_on_top=True, size=(300, 200), return_keyboard_events=True).Layout(layout)
+    #loginWindow['-LoginOk-'].Widget.bind('<Enter>', searchItemData)
+    #loginWindow.bind('')
+
+    closeMain=False
 
     while True:             # Event Loop
         event, values = loginWindow.Read()
-        if event is None or event == sg.WIN_CLOSED or event == '-LoginCancel-':
-            loginWindow.Close()
-            window.Close()
+        print("event",event)
+        if event is None or event == sg.WIN_CLOSED:
+          loginWindow.Close()
+
+        if event == '-LoginCancel-':
+            print('Login window close')
+            closeMain = True
             break
-        if event == '-LoginOk-':
+
+        if event is None or event == '-LoginOk-' or event == '<Enter>':
             uid = loginWindow['-LOGINUSER-'].Get()
             pwd = loginWindow['-LOGINPWD-'].Get()
             print('login details',uid,pwd)
             if uid == 'admin' and pwd == '1234':
                 print('Login successfull...')
-                loginWindow.close()
+                break
             else:
                 loginWindow['ErrMsg'].update('Invalid Credential')
+
+    loginWindow.Close()
+    if closeMain:
+        closeMain = False
+        global window
+        window.Close()
+
 
 def open_window():
     # print(predict_text('1', ['123']))
@@ -124,21 +140,6 @@ def open_window():
             justName = str(values['_COMBO_']).split('~')
             window.FindElement('-ITEMNAME-').Update(justName[0])
             window.FindElement('-BARCODE-NB-').Update(justName[1])
-
-
-
-"""
-def open_window():
-
-    layout = [[sg.Text("New Window", key="new")]]
-    window = sg.Window("Second Window", layout, modal=True)
-    choice = None
-    while True:
-        event, values = window.read()
-        if event == "Exit" or event == sg.WIN_CLOSED:
-            break
-    window.close()
-"""
 
 def searchItemData(event):
     if len(window['Item-Name'].get()) >= 2:
@@ -513,10 +514,12 @@ while True:
             data.pop(selected_row)
             selected_row = None
             window.Element('-TABLE-').update(values=data)
+
     if event == sg.WIN_CLOSED:
         print('close window')
         if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
             break
+
 
     if event == '<Escape>':
         if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
