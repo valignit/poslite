@@ -46,6 +46,7 @@ ws_erp_passwd = config["ws_erp_passwd"]
 ws_erp_payload = {"usr": ws_erp_user, "pwd": ws_erp_passwd }
 
 ws_erp_method = '/api/method/login'
+
 try:
     ws_erp_resp = ws_erp_sess.post(ws_erp_host + ws_erp_method, data=ws_erp_payload)
     ws_erp_resp.raise_for_status()   
@@ -122,11 +123,12 @@ for ws_erp_row_item in ws_erp_resp_json["items"]:
     item_code = ws_erp_row_item["item_code"]
     item_stock = ws_erp_row_item["shop_stock"]
     item_selling_price = ws_erp_row_item["standard_rate"]
-   
+    item_maximum_retail_price = ws_erp_row_item["maximum_retail_price"]
+
     db_pos_sql_stmt = (
-        "UPDATE tabItem SET stock = %s, selling_price = %s, modified = now(), modified_by = %s WHERE item_code = %s"
+        "UPDATE tabItem SET stock = %s, selling_price = %s, maximum_retail_price = %s, modified = now(), modified_by = %s WHERE item_code = %s"
     )
-    db_pos_sql_data = (item_stock, item_selling_price, ws_erp_user, item_code)
+    db_pos_sql_data = (item_stock, item_selling_price, item_maximum_retail_price, ws_erp_user, item_code)
 
     try:
         db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
@@ -169,6 +171,8 @@ print_log(f"Total Items Updated: {item_count}")
 ######    
 # Closing DB connection
 db_pos_conn.close()
- 
+
+######    
+# Closing Log file 
 print_log("Item Stock Price Upload process completed")
 file_log.close()

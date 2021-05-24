@@ -1,8 +1,8 @@
 ##################################################
 # Application: alignPOS
 # Installation: AFSM
-# CLI Program: upload-item
-# Description: Send the list of all Items along with details including Stock and Price
+# CLI Program: upload-customer
+# Description: Send the list of all Customers along with details
 # Version: 1.0
 # 1.0.0 - 25-04-2021: New program
 ##################################################
@@ -34,8 +34,8 @@ def print_log(msg):
 ##############################
 # Main
 ##############################
-print_log('alignPOS - Upload Item - Version 1.1')
-print_log('------------------------------------')
+print_log('alignPOS - Upload Customer - Version 1.1')
+print_log('----------------------------------------')
 
 ######
 # Connect to ERPNext web service
@@ -48,7 +48,7 @@ ws_erp_payload = {"usr": ws_erp_user, "pwd": ws_erp_passwd }
 ws_erp_method = '/api/method/login'
 
 try:
-    ws_erp_resp = ws_erp_sess.get(ws_erp_host + ws_erp_method, data=ws_erp_payload)
+    ws_erp_resp = ws_erp_sess.post(ws_erp_host + ws_erp_method, data=ws_erp_payload)
     ws_erp_resp.raise_for_status()   
     ws_erp_resp_text = ws_erp_resp.text
     ws_erp_resp_json = json.loads(ws_erp_resp_text)
@@ -92,15 +92,15 @@ db_pos_cur = db_pos_conn.cursor()
 
 
 ######
-# Delete old Item records
+# Delete old Customer records
 db_pos_sql_stmt = (
-    "DELETE FROM tabItem"
+    "DELETE FROM tabCustomer"
 )
 
 try:
     db_pos_cur.execute(db_pos_sql_stmt)
     db_pos_conn.commit()
-    print_log("Old Item records Deleted")
+    print_log("Old Customer records Deleted")
 except mariadb.Error as db_err:
     print_log(f"POS database error: {db_err}")
     db_pos_conn.rollback()
@@ -108,14 +108,14 @@ except mariadb.Error as db_err:
 
 
 ######
-# Fetch List of Items from ERP
-ws_erp_method = '/api/resource/Item?limit_page_length=None'
+# Fetch List of Customers from ERP
+ws_erp_method = '/api/resource/Customer?limit_page_length=None'
 try:
     ws_erp_resp = ws_erp_sess.get(ws_erp_host + ws_erp_method)
     ws_erp_resp.raise_for_status()   
     ws_erp_resp_text = ws_erp_resp.text
     ws_erp_resp_json = json.loads(ws_erp_resp_text)
-    #print_log(ws_erp_resp_text)
+    #print_log(ws_erp_resp_json["data"])
 except requests.exceptions.HTTPError as ws_err:
     print_log(f"ERP web service error: {ws_err}")
     sys.exit(1)
@@ -129,19 +129,19 @@ except requests.exceptions.RequestException as ws_err:
     print_log(f"ERP web service error: {ws_err}")
     sys.exit(1)
 
+
 ######
-# Fetch each Item from Item List from ERP   
-item_count = 0
-for ws_erp_row_item in ws_erp_resp_json["data"]:
-    #print_log(str(ws_erp_row_item))
-    item_count+=1
-    ws_erp_method = '/api/resource/Item/' + str(ws_erp_row_item["name"])
+# Fetch each Customer from Customer List from ERP   
+cust_count = 0
+for ws_erp_row_cust in ws_erp_resp_json["data"]:
+    cust_count+=1
+    ws_erp_method = '/api/resource/Customer/' + ws_erp_row_cust["name"] + '?fields=["*"]'
     try:
         ws_erp_resp = ws_erp_sess.get(ws_erp_host + ws_erp_method)
         ws_erp_resp.raise_for_status()   
         ws_erp_resp_text = ws_erp_resp.text
         ws_erp_resp_json = json.loads(ws_erp_resp_text)
-        #print_log(ws_erp_resp_text)
+        #print_log(ws_erp_resp_json["data"]["name"])
     except requests.exceptions.HTTPError as ws_err:
         print_log(f"ERP web service error: {ws_err}")
         sys.exit(1)
@@ -155,86 +155,34 @@ for ws_erp_row_item in ws_erp_resp_json["data"]:
         print_log(f"ERP web service error: {ws_err}")
         sys.exit(1)
 
-    item_name = ws_erp_resp_json["data"]["name"]
-    item_code = ws_erp_resp_json["data"]["item_code"]
-    item_item_name = ws_erp_resp_json["data"]["item_name"]
-    item_group = ws_erp_resp_json["data"]["item_group"]
-    item_stock = ws_erp_resp_json["data"]["shop_stock"]
-    item_selling_price = ws_erp_resp_json["data"]["standard_rate"]
-    item_maximum_retail_price = ws_erp_resp_json["data"]["maximum_retail_price"]
-    #print(str(item_selling_price),',',str(item_maximum_retail_price))
+    cust_name = ws_erp_resp_json["data"]["name"]
+    cust_cust_name = ws_erp_resp_json["data"]["customer_name"]
+    cust_type = ws_erp_resp_json["data"]["customer_type"]
+    cust_address = ws_erp_resp_json["data"]["address"]
+    cust_mobile_number = ws_erp_resp_json["data"]["mobile_number"]
+    cust_loyalty_points = ws_erp_resp_json["data"]["loyalty_points"]
     
-    # Pick first uom of the Item 
-    for uom in ws_erp_resp_json["data"]["uoms"]:
-        item_uom = uom["uom"]
-        #print_log(item_uom)
-        break
-
-    # Pick first barcode of the Item 
-    for barcode in ws_erp_resp_json["data"]["barcodes"]:
-        item_barcode = barcode["name"]
-        #print_log(item_barcode)
-        break
-
-    # Pick first Tax template of the Item     
-    for tax in ws_erp_resp_json["data"]["taxes"]:
-        item_tax_template = tax["item_tax_template"]
-        #print_log(item_tax_template)        
-        break
-
-    # Fetch Item Tax Template details 
-    ws_erp_method = '/api/resource/Item Tax Template/' 
-    try:
-        ws_erp_resp = ws_erp_sess.get(ws_erp_host + ws_erp_method + item_tax_template)
-        ws_erp_resp.raise_for_status()   
-        ws_erp_resp_text = ws_erp_resp.text
-        ws_erp_resp_json = json.loads(ws_erp_resp_text)
-        #print_log(ws_erp_resp_text)
-    except requests.exceptions.HTTPError as ws_err:
-        print_log(f"ERP web service error: {ws_err}")
-        sys.exit(1)
-    except requests.exceptions.ConnectionError as ws_err:
-        print_log(f"ERP web service error: {ws_err}")
-        sys.exit(1)
-    except requests.exceptions.Timeout as ws_err:
-        print_log(f"ERP web service error: {ws_err}")
-        sys.exit(1)
-    except requests.exceptions.RequestException as ws_err:
-        print_log(f"ERP web service error: {ws_err}")
-        sys.exit(1)
-
-    # Pick Tax rates from Tax Template
-    for tax in ws_erp_resp_json["data"]["taxes"]:
-        if tax["tax_type"] == 'CGST - AFSM':
-            cgst_tax_rate = tax["tax_rate"]
-        if tax["tax_type"] == 'SGST - AFSM':
-            sgst_tax_rate = tax["tax_rate"]
-             
-        #print_log(cgst_tax_rate)        
-
     db_pos_sql_stmt = (
-       "INSERT INTO tabItem (name, item_code, item_name, item_group, barcode, uom, stock, selling_price, maximum_retail_price, cgst_tax_rate, sgst_tax_rate, creation, owner)"
-       "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now(), %s)"
+       "INSERT INTO tabCustomer (name, customer_name, customer_type, address, mobile_number, loyalty_points, creation, owner)"
+       "VALUES (%s, %s, %s, %s, %s, %s, now(), %s)"
     )
-    db_pos_sql_data = (item_name, item_code, item_item_name, item_group, item_barcode, item_uom, item_stock, item_selling_price, item_maximum_retail_price, cgst_tax_rate, sgst_tax_rate, ws_erp_user)
+    db_pos_sql_data = (cust_name, cust_cust_name, cust_type, cust_address, cust_mobile_number, cust_loyalty_points, ws_erp_user)
 
     try:
         db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         db_pos_conn.commit()
-        print_log(f"Inserted Item: {item_name}")
+        print_log(f"Inserted Customer: {cust_name}")
     except mariadb.Error as db_err:
         print_log(f"POS database error: {db_err}")
         db_pos_conn.rollback()
         sys.exit(1)
 
 
-print_log(f"Total Items Inserted: {item_count}")
+print_log(f"Total Customers Inserted: {cust_count}")
 
 ######    
 # Closing DB connection
 db_pos_conn.close()
-
-######    
-# Closing Log file 
-print_log("Item Upload process completed")
+ 
+print_log("Customer Upload process completed")
 file_log.close()
