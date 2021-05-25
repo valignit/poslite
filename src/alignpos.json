@@ -6,5 +6,6 @@
 	"db_pos_port" : 3306,
 	"db_pos_name" : "alignpos",
 	"db_pos_user" : "alignpos",
-	"db_pos_passwd" : "valignit@2021"
+	"db_pos_passwd" : "valignit@2021",
+	"terminal_id" : "01"
 }
