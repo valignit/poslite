@@ -33,7 +33,7 @@ class DBOperations:
     db_pos_cur = db_pos_conn.cursor()
 
     def fetchItemData(self,barcode):
-        query = "SELECT barcode,item_name, uom, FORMAT(selling_price,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2),FORMAT(item_tax_rate,2) FROM tabItem where barCode='" + barcode + "';"
+        query = "SELECT barcode,item_name, uom, FORMAT(selling_price,2),FORMAT(sgst_tax_rate,2),FORMAT(sgst_tax_rate,2),FORMAT(cgst_tax_rate,2),FORMAT(cgst_tax_rate,2) FROM tabItem where barCode='" + barcode + "';"
         try:
             #self.getDBConnection
             db_pos_cur = self.db_pos_conn.cursor()
