@@ -59,7 +59,7 @@ def login_window():
               [sg.Column(buttonLayout,vertical_alignment='center', justification='center') ]
               ]
 
-    loginWindow = sg.Window('Login Window', keep_on_top=True, size=(300, 200), return_keyboard_events=True).Layout(layout)
+    loginWindow = sg.Window('Login Window', keep_on_top=True, size=(300, 200), return_keyboard_events=True,enable_close_attempted_event=True).Layout(layout)
     #loginWindow['-LoginOk-'].Widget.bind('<Enter>', searchItemData)
     #loginWindow.bind('')
 
@@ -68,15 +68,16 @@ def login_window():
     while True:             # Event Loop
         event, values = loginWindow.Read()
         print("event",event)
-        if event is None or event == sg.WIN_CLOSED:
-          loginWindow.Close()
+        if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event is None or event == sg.WIN_CLOSED:
+            sys.exit(0)
 
         if event == '-LoginCancel-':
-            print('Login window close')
-            closeMain = True
-            break
+            #print('Login window close')
+            #closeMain = True
+            #break
+            sys.exit(0)
 
-        if event is None or event == '-LoginOk-' or event == '<Enter>':
+        if event == '-LoginOk-' or event == '<Enter>':
             uid = loginWindow['-LOGINUSER-'].Get()
             pwd = loginWindow['-LOGINPWD-'].Get()
             print('login details',uid,pwd)
@@ -477,7 +478,7 @@ mainLayout = [
         sg.Column(col_2_Layout, background_color='lightblue', vertical_alignment='top'),
     ]
 ]
-window = sg.Window('POS', mainLayout, location=(0, 0), size=(win_w, win_h), use_default_focus=False, finalize=True, resizable=True)
+window = sg.Window('POS', mainLayout, location=(0, 0), size=(win_w, win_h), use_default_focus=False, finalize=True, resizable=True,enable_close_attempted_event=True)
 
 #window['-BARCODE-NB-'].bind('<FocusOut>', verifyOut)
 window['-BARCODE-NB-'].Widget.bind('<FocusOut>', verifyOut)
@@ -515,7 +516,7 @@ while True:
             selected_row = None
             window.Element('-TABLE-').update(values=data)
 
-    if event == sg.WIN_CLOSED:
+    if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == sg.WIN_CLOSED:
         print('close window')
         if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
             break
