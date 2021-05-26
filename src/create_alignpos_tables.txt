@@ -121,7 +121,10 @@ CREATE TABLE `tabUser` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `tabSettings` (
-  `invoice_number_prefix` varchar(140) DEFAULT NULL,
+  `invoice_number_prefix` varchar(140) DEFAULT 'SINV-',
   `last_invoice_number` INT DEFAULT NULL,
+  `last_reference_number` INT DEFAULT NULL,
+  `estimate_number_prefix` varchar(140) DEFAULT 'EST-',
+  `last_estimate_number` INT DEFAULT NULL,
   `conversion_factor` decimal(18,6) DEFAULT NULL  
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
