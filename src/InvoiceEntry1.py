@@ -85,9 +85,9 @@ def open_popup_chg_qty(row_item, list_item):
     
     while True:
         event, values = popup_chg_qty.read()
-        print('event=', event)
+        print('eventc=', event)
         
-        if event == "Exit" or event == '-CHG-QTY-ESC-' or event == sg.WIN_CLOSED:
+        if event in ("Exit", '-CHG-QTY-ESC-', 'Escape:27') or event == sg.WIN_CLOSED:
             break        
         if event == "-CHG-QTY-OK-" or event == "F12:123": 
             applied_qty = popup_chg_qty.Element('-NEW-QTY-').get()
@@ -105,8 +105,7 @@ def open_popup_chg_qty(row_item, list_item):
                 #sum_item_list()
                 break
     
-    popup_chg_qty.close()
-
+    popup_chg_qty.close()   
 
 
 with open('./alignpos.json') as file_config:
@@ -396,12 +395,9 @@ db_pos_cur = db_pos_conn.cursor()
 prev_event = ''
 focus_element = ''
 while True:
-    
     event, values = window.read()
-    print('event=', event,'\nvalues=',values)
-    if (event):
-        focus_element = window.FindElementWithFocus().Key
-    print('event=', event, ' prev=', prev_event, ' focus=', str(focus_element))
+    print('eventm=', event,'\nvalues=',values)
+    #print('eventm=', event, ' prev=', prev_event, ' focus=', str(focus_element))
 
     if event == sg.WIN_CLOSED:
         window.close()
@@ -431,7 +427,7 @@ while True:
         kb.press(Key.backspace)
         kb.release(Key.backspace)
 
-    if event in ('T1','T2','T3','T4','T5','T6','T7','T8','T9','T0') and focus_element == '-BARCODE-NB-':
+    if event in ('T1','T2','T3','T4','T5','T6','T7','T8','T9','T0') and window.FindElementWithFocus().Key == '-BARCODE-NB-':
         inp_val = window.Element('-BARCODE-NB-').get()
         inp_val += event[1]
         window.Element('-BARCODE-NB-').update(value = inp_val)
