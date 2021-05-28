@@ -1,5 +1,7 @@
 import PySimpleGUI as sg
 import json
+import DBManager
+#from DBManager import DBManager as dbManager
 
 def exitPos():
     print('Exit Pos')
@@ -75,9 +77,13 @@ while True:
         uid = window['-LOGINUSER-'].Get()
         pwd = window['-LOGINPWD-'].Get()
         print('login details', uid, pwd)
-        
-        if uid == 'admin' and pwd == '1234':
+        dbConn = DBManager.DBManager.getDBConnection(data['db_pos_host'],data['db_pos_port'],data['db_pos_name'],data['db_pos_user'],data['db_pos_passwd'])
+        db_pos_cur = dbConn.cursor()
+        db_pos_cur.execute("SELECT * FROM tabUser WHERE USER_ID = '" + uid + "' AND PASSWORD='" + pwd + "'")
+        db_item_row = db_pos_cur.fetchone()
+        if db_item_row is not None:
             print('Login successfull...')
             break
         else:
+            print('Login Failed.....')
             window['ErrMsg'].update('Invalid Credential')
