@@ -1,10 +1,13 @@
 import PySimpleGUI as sg
+import json
 
-"""
-layout = [[sg.Text('AL FAREEDHA \n SUPER MARKET',size=(20,1))],
-          [sg.Text('Try closing window with the "X"')],
-          [sg.Button('Go'), sg.Button('Exit')]]
-"""
+def exitPos():
+    print('Exit Pos')
+
+def login():
+    print('login Pos')
+
+
 heading: dict = {'size':(100, 1), 'font':('Helvetica 20 bold'), 'text_color':'blue'}
 btm_btn: dict = {'size':(10, 2), 'font':'Helvetica 11 bold'}
 txt_font: dict = {'font':('Helvetica 11 bold'), 'justification':'right', 'size':(10, 1), 'text_color':'black'}
@@ -16,7 +19,7 @@ buttonLayout = [
                             sg.Button('F12\nSign In', key='-LoginOk-', **btm_btn ),
                             sg.Button('Esc-Exit', key='Exit', **btm_btn)
                         ]
-                    ],pad=((20, 0), (50, 0),(50,0),(50,0)))
+                    ],pad=((50, 0), (50, 0),(50,0),(50,0)))
                 ]
 header= [
             sg.Column(
@@ -24,37 +27,57 @@ header= [
                     [
                         sg.Image(filename='company-logo.GIF',pad=((30,0)))
                     ]
-                ], size=(320, 90), vertical_alignment='center', justification='center',  pad=((0, 0), (0, 0),(0,0),(0,0)))
+                ], size=(320, 90), vertical_alignment='center', justification='center',  pad=((35, 0), (0, 0),(0,0),(0,0)))
         ]
 
 footer= [
             sg.Column(
                 [
                     [
-                        sg.Image(filename='valign-pos.gif', pad=((30, 0)))
+                        sg.Image(filename='valign-pos.GIF', pad=((30, 0)))
                     ]
-                ], size=(400, 90), vertical_alignment='center', justification='center', pad=((0, 0), (20, 0),(20,0),(20,0)))
+                ], size=(400, 90), vertical_alignment='center', justification='center', pad=((50, 0), (60, 0),(20,0),(20,0)))
         ]
 
+input_fld: dict = {'readonly':'True', 'disabled_readonly_text_color':'gray','disabled_readonly_background_color':'gray89','size':(20, 1)}
+
+with open('alignpos.json') as f:
+    data = json.load(f)
 
 
 layout = [
     [header],
     [sg.Text(' ', key='ErrMsg', size=(100, 1))],
-    [sg.Text('User Name:', **txt_font,pad=((10, 5), (10, 0))),
+    [sg.Text('User Name:', **txt_font,pad=((20, 5), (10, 0))),
      sg.In(key='-LOGINUSER-', pad=((0, 0), (15, 5)), size=(20, 1))],
-    [sg.Text('Password:',**txt_font ,pad=((10, 5), (10, 0))),
+    [sg.Text('Password:',**txt_font ,pad=((20, 5), (10, 0))),
      sg.In(key='-LOGINPWD-' ,password_char='*', pad=((0, 0), (15, 0)), size=(20, 1))],
-    [sg.Text('Terminal:',**txt_font ,pad=((10, 5), (10, 0))),
-     sg.In(key='-TERMINAL-', pad=((0, 0), (15, 5)), size=(20, 1), disabled=True)],
+    [sg.Text('Terminal:',**txt_font ,pad=((20, 5), (10, 0))),
+     sg.In(key='-TERMINAL-', default_text=data['terminal_id'],**input_fld , pad=((0, 0), (15, 5)))],
     [buttonLayout],
     [footer]
 ]
 
-window = sg.Window('Login Window', layout, enable_close_attempted_event=True,no_titlebar=True,keep_on_top=True, size=(350, 450), return_keyboard_events=True,)
+window = sg.Window('Login Window', layout, enable_close_attempted_event=True,no_titlebar=True,keep_on_top=True, size=(350, 450), return_keyboard_events=True,finalize=True)
+
+window.bind('<Escape>', exitPos())
+window.bind('<F12>', login())
 
 while True:
     event, values = window.read()
-    print(event, values)
-    if (event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == 'Exit') and sg.popup_yes_no('Do you really want to exit?') == 'Yes':
-        break
+    #print(event, values)
+    if (event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == 'Exit') and sg.popup_yes_no('Do you really want to exit?',title='Confirmation', keep_on_top=True) == 'Yes':
+            break
+    if event == '<Escape>':
+        if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
+            break
+    if event == '<F12>' or event == '-LoginOk-' or event == '<Enter>':
+        uid = window['-LOGINUSER-'].Get()
+        pwd = window['-LOGINPWD-'].Get()
+        print('login details', uid, pwd)
+        
+        if uid == 'admin' and pwd == '1234':
+            print('Login successfull...')
+            break
+        else:
+            window['ErrMsg'].update('Invalid Credential')
