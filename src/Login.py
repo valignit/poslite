@@ -1,7 +1,8 @@
 import PySimpleGUI as sg
 import json
-import DBManager
+#import DBManager
 #from DBManager import DBManager as dbManager
+from DBOperations import DBOperations
 
 def exitPos():
     print('Exit Pos')
@@ -9,6 +10,17 @@ def exitPos():
 def login():
     print('login Pos')
 
+with open('alignpos.json') as f:
+    data = json.load(f)
+
+db_pos_host = data['db_pos_host']
+db_pos_port = data['db_pos_port']
+db_pos_name = data['db_pos_name']
+db_pos_user = data['db_pos_user']
+db_pos_passwd = data['db_pos_passwd']
+
+#dbManager =    dbManager(dbHost, dbPort, dbName, dbUser, dbPwd)
+dbOperation = DBOperations(db_pos_host,db_pos_port,db_pos_name,db_pos_user,db_pos_passwd)
 
 heading: dict = {'size':(100, 1), 'font':('Helvetica 20 bold'), 'text_color':'blue'}
 btm_btn: dict = {'size':(10, 2), 'font':'Helvetica 11 bold'}
@@ -43,10 +55,6 @@ footer= [
 
 input_fld: dict = {'readonly':'True', 'disabled_readonly_text_color':'gray','disabled_readonly_background_color':'gray89','size':(20, 1)}
 
-with open('alignpos.json') as f:
-    data = json.load(f)
-
-
 layout = [
     [header],
     [sg.Text(' ', key='ErrMsg', size=(100, 1))],
@@ -77,10 +85,11 @@ while True:
         uid = window['-LOGINUSER-'].Get()
         pwd = window['-LOGINPWD-'].Get()
         print('login details', uid, pwd)
-        dbConn = DBManager.DBManager.getDBConnection(data['db_pos_host'],data['db_pos_port'],data['db_pos_name'],data['db_pos_user'],data['db_pos_passwd'])
-        db_pos_cur = dbConn.cursor()
-        db_pos_cur.execute("SELECT * FROM tabUser WHERE USER_ID = '" + uid + "' AND PASSWORD='" + pwd + "'")
-        db_item_row = db_pos_cur.fetchone()
+        #dbConn = DBManager.DBManager.getDBConnection()
+        #db_pos_cur = dbConn.cursor()
+        #db_pos_cur.execute("SELECT * FROM tabUser WHERE USER_ID = '" + uid + "' AND PASSWORD='" + pwd + "'")
+        #db_item_row = db_pos_cur.fetchone()
+        db_item_row = dbOperation.verifyUser(uid,pwd)
         if db_item_row is not None:
             print('Login successfull...')
             break

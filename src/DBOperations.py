@@ -10,8 +10,8 @@ class DBOperations:
     db_pos_conn = None
     db_pos_cur = None
 
-    def __init__(self,server,port,dbname,user,pwd):
-        db_pos_host = server
+    def __init__(self,dbhost,port,dbname,user,pwd):
+        db_pos_host = dbhost
         db_pos_port = port
         db_pos_name = dbname
         db_pos_user = user
@@ -35,18 +35,18 @@ class DBOperations:
     def fetchItemData(self,barcode):
         query = "SELECT barcode,item_name, uom, FORMAT(selling_price,2),FORMAT(sgst_tax_rate,2),FORMAT(sgst_tax_rate,2),FORMAT(cgst_tax_rate,2),FORMAT(cgst_tax_rate,2) FROM tabItem where barCode='" + barcode + "';"
         try:
-            #self.getDBConnection
-            db_pos_cur = self.db_pos_conn.cursor()
-            db_pos_cur.execute(query)
-            # print('fetchdata=', db_pos_cur.fetchall())
-            # for row in db_pos_cur.fetchall():
-            #    print(row)
-            # Returns a list of lists
-            from_db = []
-            for result in db_pos_cur.fetchall():
-                result = list(result)
-                print('result=', result)
-                from_db.append(result)
+                #self.getDBConnection
+                db_pos_cur = self.db_pos_conn.cursor()
+                db_pos_cur.execute(query)
+                # print('fetchdata=', db_pos_cur.fetchall())
+                # for row in db_pos_cur.fetchall():
+                #    print(row)
+                # Returns a list of lists
+                from_db = []
+                for result in db_pos_cur.fetchall():
+                    result = list(result)
+                    print('result=', result)
+                    from_db.append(result)
         except mariadb.Error as db_err:
             print(f"POS database error: {db_err}")
             self.db_pos_conn.rollback()
@@ -77,5 +77,13 @@ class DBOperations:
         return from_db
 
 
+    def verifyUser(self,uid,pwd):
+        query = "SELECT * FROM tabUser WHERE USER_ID = '" + uid + "' AND PASSWORD='" + pwd + "'"
+        db_pos_cur = self.db_pos_conn.cursor()
+        db_pos_cur.execute(query)
+        userDetail = db_pos_cur.fetchone()
+        print(userDetail)
+        return userDetail
+
     def closeDBCon(self):
-        db_pos_conn.close()
+        self.db_pos_conn.close()
