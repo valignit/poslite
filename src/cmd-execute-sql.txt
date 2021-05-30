@@ -1,0 +1,7 @@
+login to mariadb
+
+>mysql -u root -p 
+
+execute the sql file
+
+>source <path for .sql file>
