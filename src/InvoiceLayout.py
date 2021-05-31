@@ -51,191 +51,193 @@ class InvoiceLayout:
     inv_label_font: dict = {'size': (15, 1), 'font': ('Helvetica 20')}
     btn_ent: dict = {'size': (element_w, element_h), 'font': 'Helvetica 11 bold', 'button_color': 'cornflower blue'}
 
-    col_1_Layout = [
-        [
-            sg.Column(
+    def col1(self):
+         return [
                 [
-                    [
-                        sg.Text('Invoice Entry', **inv_label_font),
-                        sg.Text('User:', **input_font),
-                        sg.Input(key='-USERID-', **input_fld),
-                        sg.Text('Terminal:', **input_font),
-                        sg.Input(key='-TERMINAL-', **input_fld),
-                        sg.Text('Date:', **input_font),
-                        sg.Input(key='-DATE-', **input_fld,default_text=today.strftime("%m/%d/%y"))
-                    ]
-                ], size=col1_size, vertical_alignment='top')
-        ],
-        [
-            sg.Column(
+                    sg.Column(
+                        [
+                            [
+                                sg.Text('Invoice Entry', **self.inv_label_font),
+                                sg.Text('User:', **self.input_font),
+                                sg.Input(key='-USERID-', **self.input_fld),
+                                sg.Text('Terminal:', **self.input_font),
+                                sg.Input(key='-TERMINAL-', **self.input_fld),
+                                sg.Text('Date:', **self.input_font),
+                                sg.Input(key='-DATE-', **self.input_fld,default_text=self.today.strftime("%m/%d/%y"))
+                            ]
+                        ], size=self.col1_size, vertical_alignment='top')
+                ],
                 [
-                    [
-                        sg.Text('Invoice No', **input_font),
-                        sg.Input(key='-INVOICE_NO-',**input_fld),
-                        sg.Text('Reference No:', **input_font),
-                        sg.Input(key='-REFERENCE_NO-', **input_font),
-                        sg.Text('Mobile No.:', **input_font),
-                        sg.Input(key='-MOBILE_NO-', **input_fld),
-                        sg.Text('Customer:', **input_font),
-                        sg.Input(key='-CUSTOMER-', **input_fld),
-                        sg.Text('UNPAID', font=("Helvetica", 15)),
-                        sg.Button('PREV\n←', size=(8, 2), font='Calibri 12 bold', key='PREV',
-                                  button_color=pad_button_color),
-                        sg.Button('NEXT\n→', size=(8, 2), font='Calibri 12 bold', key='NEXT',
-                                  button_color=pad_button_color)
-                    ]
-                ], size=col1_size, vertical_alignment='top')
-        ],
-        [
-            sg.Column(
+                    sg.Column(
+                        [
+                            [
+                                sg.Text('Invoice No', **self.input_font),
+                                sg.Input(key='-INVOICE_NO-',**self.input_fld),
+                                sg.Text('Reference No:', **self.input_font),
+                                sg.Input(key='-REFERENCE_NO-', **self.input_font),
+                                sg.Text('Mobile No.:', **self.input_font),
+                                sg.Input(key='-MOBILE_NO-', **self.input_fld),
+                                sg.Text('Customer:', **self.input_font),
+                                sg.Input(key='-CUSTOMER-', **self.input_fld),
+                                sg.Text('UNPAID', font=("Helvetica", 15)),
+                                sg.Button('PREV\n←', size=(8, 2), font='Calibri 12 bold', key='PREV',
+                                          button_color=self.pad_button_color),
+                                sg.Button('NEXT\n→', size=(8, 2), font='Calibri 12 bold', key='NEXT',
+                                          button_color=self.pad_button_color)
+                            ]
+                        ], size=self.col1_size, vertical_alignment='top')
+                ],
                 [
-                    [
-                        sg.Text('Barcode:', size=(8, 1), font=("Helvetica", 12)),
-                        sg.Input(key='-BARCODE-NB-', background_color='White', font=("Helvetica", 12), size=(15, 1), focus=True,enable_events=True),
-                        sg.Text('Item Name:', size=(12, 1), font=("Helvetica", 12)),
-                        sg.InputCombo(('8901314010322'), background_color='White' ,auto_size_text=True, font=("Helvetica", 12),
-                                      size=(20, 20), key='Item-Name' ),
-                        sg.Input(key='-ITEMNAME-', background_color='White', font=("Helvetica", 12), size=(15, 1)),
-                        sg.Button('Search Item', border_width=2,**btm_btn , key='-SEARCH-ITME-'),
-                    ]
-                ], size=col1_size, vertical_alignment='top')
-        ],
-        [
-            sg.Column(
+                    sg.Column(
+                        [
+                            [
+                                sg.Text('Barcode:', size=(8, 1), font=("Helvetica", 12)),
+                                sg.Input(key='-BARCODE-NB-', background_color='White', font=("Helvetica", 12), size=(15, 1), focus=True,enable_events=True),
+                                sg.Text('Item Name:', size=(12, 1), font=("Helvetica", 12)),
+                                sg.InputCombo(('8901314010322'), background_color='White' ,auto_size_text=True, font=("Helvetica", 12),
+                                              size=(20, 20), key='Item-Name' ),
+                                sg.Input(key='-ITEMNAME-', background_color='White', font=("Helvetica", 12), size=(15, 1)),
+                                sg.Button('Search Item', border_width=2,**self.btm_btn , key='-SEARCH-ITME-'),
+                            ]
+                        ], size=self.col1_size, vertical_alignment='top')
+                ],
                 [
-                    [
-                        sg.Table(values=data,
-                                 key='-TABLE-',
-                                 headings=column_heading,
-                                 font=(("Helvetica", 11)),
-                                 # max_col_width=500,
-                                 auto_size_columns=False,
-                                 justification='right',
-                                 row_height=25,
-                                 alternating_row_color='lightsteelBlue1',
-                                 num_rows=15,
-                                 col_widths=[12, 10, 10, 10, 10, 10, 12, 10, 12],
-                                 enable_events=True,
-                                 bind_return_key=True
-                                 )
-                    ]
-                ], size=(col1_w, tab_h), vertical_alignment='top'
-            )
-        ],
-        [
-            sg.Column(
+                    sg.Column(
+                        [
+                            [
+                                sg.Table(values=self.data,
+                                         key='-TABLE-',
+                                         headings=self.column_heading,
+                                         font=(("Helvetica", 11)),
+                                         # max_col_width=500,
+                                         auto_size_columns=False,
+                                         justification='right',
+                                         row_height=25,
+                                         alternating_row_color='lightsteelBlue1',
+                                         num_rows=15,
+                                         col_widths=[12, 10, 10, 10, 10, 10, 12, 10, 12],
+                                         enable_events=True,
+                                         bind_return_key=True
+                                         )
+                            ]
+                        ], size=(self.col1_w, self.tab_h), vertical_alignment='top'
+                    )
+                ],
                 [
-                    [
-                        sg.Button('F1\nHelp', border_width=2,**btm_btn , key='F1'),
-                        sg.Button('F2\nDel Item', border_width=2, **btm_btn, key='F2'),
-                        sg.Button('F3\nLookup', border_width=2, **btm_btn, key='F3'),
-                        sg.Button('F4\nChange Qty', border_width=2, **btm_btn, key='F4'),
-                        sg.Button('F5\nChange Price', border_width=2, **btm_btn, key='F5'),
-                        sg.Button('F6\nGet Weight', border_width=2, **btm_btn, key='F6')
-                    ],
-                    [
-                        sg.Button('F7\nNew Invoice',border_width=2, **btm_btn, key='F7'),
-                        sg.Button('F8\nDel Invoice', border_width=2 ,**btm_btn, key='F8'),
-                        sg.Button('F9\nLookup Cust', border_width=2,**btm_btn, key='F9'),
-                        sg.Button('F10\nList Invoices', border_width=2,**btm_btn, key='F10'),
-                        sg.Button('F11\nPrint Invoices', border_width=2,**btm_btn, key='F11'),
-                        sg.Button('F12\nPayment', border_width=2,**btm_btn, key='F12'),
-                        sg.Button('Esc-Exit', border_width=2,**btm_btn, key='ESC')
+                    sg.Column(
+                        [
+                            [
+                                sg.Button('F1\nHelp', border_width=2,**self.btm_btn , key='F1'),
+                                sg.Button('F2\nDel Item', border_width=2, **self.btm_btn, key='F2'),
+                                sg.Button('F3\nLookup', border_width=2, **self.btm_btn, key='F3'),
+                                sg.Button('F4\nChange Qty', border_width=2, **self.btm_btn, key='F4'),
+                                sg.Button('F5\nChange Price', border_width=2, **self.btm_btn, key='F5'),
+                                sg.Button('F6\nGet Weight', border_width=2, **self.btm_btn, key='F6')
+                            ],
+                            [
+                                sg.Button('F7\nNew Invoice',border_width=2, **self.btm_btn, key='F7'),
+                                sg.Button('F8\nDel Invoice', border_width=2 ,**self.btm_btn, key='F8'),
+                                sg.Button('F9\nLookup Cust', border_width=2,**self.btm_btn, key='F9'),
+                                sg.Button('F10\nList Invoices', border_width=2,**self.btm_btn, key='F10'),
+                                sg.Button('F11\nPrint Invoices', border_width=2,**self.btm_btn, key='F11'),
+                                sg.Button('F12\nPayment', border_width=2,**self.btm_btn, key='F12'),
+                                sg.Button('Esc-Exit', border_width=2,**self.btm_btn, key='ESC')
 
-                    ]
-                ], size=(col1_w, 150), vertical_alignment='top')
+                            ]
+                        ], size=(self.col1_w, 150), vertical_alignment='top')
+                ]
+            ]
+
+    def col2(self):
+        return [
+            [
+                sg.Column(
+                    [
+                        [
+                            sg.Image(filename='company-logo.GIF')
+                        ]
+                    ], size=(self.col2_w, 90), vertical_alignment='top')
+            ],
+            [
+                sg.Column(
+                    [
+                        [
+                            sg.Text('Line Items:',  **self.sum_info_font),
+                            sg.Input(key='-LINE-ITEMS-', **self.sum_info)
+                        ],
+                        [
+                            sg.Text('Total Qty:',  **self.sum_info_font),
+                            sg.Input(key='-TOTAL-QTY-',**self.sum_info)
+                        ],
+                        [
+                            sg.Text('Total Price:',  **self.sum_info_font),
+                            sg.Input(key='-TOTAL-PRICE-', **self.sum_info),
+                        ],
+                        [
+                            sg.Text('Tax:',  **self.sum_info_font),
+                            sg.Input(key='-TOTAL-TAX-',**self.sum_info),
+                        ],
+                        [
+                            sg.Text('Net Price:',  **self.sum_info_font),
+                            sg.Input(key='-NET-PRICE-', **self.sum_info),
+                        ],
+                        [
+                            sg.Text('Discount:',  **self.sum_info_font),
+                            sg.Input(key='-DISCOUNT-', **self.sum_info),
+                        ],
+                        [
+                            sg.Text('Invoice Amt:',  **self.sum_info_font),
+                            sg.Input(key='-INVOICE-AMT-', **self.sum_info),
+                        ],
+                        [
+                            sg.Text('Paid Amt:',  **self.sum_info_font),
+                            sg.Input(key='-PAID-AMT-', **self.sum_info)
+                        ]
+                    ], size=(self.col2_w, 220), vertical_alignment='top')
+            ],
+            [
+                sg.Column(
+                    [
+                        [
+                            sg.Button('\u2191', **self.btn_pad , key='UP'),
+                            sg.Button('7', **self.btn_pad , key='T7'),
+                            sg.Button('8', **self.btn_pad , key='T8'),
+                            sg.Button('9', **self.btn_pad , key='T9'),
+
+                        ],
+                        [
+                            sg.Button('\u2193', **self.btn_pad ,key='DOWN'),
+                            sg.Button('4', **self.btn_pad ,key='T4' ),
+                            sg.Button('5', **self.btn_pad ,key='T5' ),
+                            sg.Button('6', **self.btn_pad , key='T6' ),
+                        ],
+                        [
+                            sg.Button('\u2192', **self.btn_pad, key='RIGHT'),
+                            sg.Button('1', **self.btn_pad, key='T1'),
+                            sg.Button('2', **self.btn_pad, key='T2'),
+                            sg.Button('3', **self.btn_pad, key='T3'),
+
+                        ],
+                        [
+                            sg.Button('\u2190', **self.btn_pad, key='LEFT'),
+                            sg.Button('0', **self.btn_pad, key='T0'),
+                            sg.Button('Enter', **self.btn_ent, key='ENTER'),
+                        ],
+                        [
+                            sg.Button('<<', **self.btn_pad_pg, key='BACK-SPACE'),
+                            sg.Button('Dn', **self.btn_pad_pg, key='TPD'),
+                            sg.Button('.', **self.btn_pad, key='FULL-STOP'),
+                            sg.Button('TAB', **self.btn_pad, key='TAB')
+                        ]
+                    ], size=(self.col2_w, 290), vertical_alignment='top')
+            ],
+            [
+                sg.Column(
+                    [
+                    ], size=(self.col2_w, 63), vertical_alignment='top')
+            ]
         ]
-    ]
-
-    col_2_Layout = [
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Image(filename='company-logo.GIF')
-                    ]
-                ], size=(col2_w, 90), vertical_alignment='top')
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Text('Line Items:',  **sum_info_font),
-                        sg.Input(key='-LINE-ITEMS-', **sum_info)
-                    ],
-                    [
-                        sg.Text('Total Qty:',  **sum_info_font),
-                        sg.Input(key='-TOTAL-QTY-',**sum_info)
-                    ],
-                    [
-                        sg.Text('Total Price:',  **sum_info_font),
-                        sg.Input(key='-TOTAL-PRICE-', **sum_info),
-                    ],
-                    [
-                        sg.Text('Tax:',  **sum_info_font),
-                        sg.Input(key='-TOTAL-TAX-',**sum_info),
-                    ],
-                    [
-                        sg.Text('Net Price:',  **sum_info_font),
-                        sg.Input(key='-NET-PRICE-', **sum_info),
-                    ],
-                    [
-                        sg.Text('Discount:',  **sum_info_font),
-                        sg.Input(key='-DISCOUNT-', **sum_info),
-                    ],
-                    [
-                        sg.Text('Invoice Amt:',  **sum_info_font),
-                        sg.Input(key='-INVOICE-AMT-', **sum_info),
-                    ],
-                    [
-                        sg.Text('Paid Amt:',  **sum_info_font),
-                        sg.Input(key='-PAID-AMT-', **sum_info)
-                    ]
-                ], size=(col2_w, 220), vertical_alignment='top')
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Button('\u2191', **btn_pad , key='UP'),
-                        sg.Button('7', **btn_pad , key='T7'),
-                        sg.Button('8', **btn_pad , key='T8'),
-                        sg.Button('9', **btn_pad , key='T9'),
-
-                    ],
-                    [
-                        sg.Button('\u2193', **btn_pad ,key='DOWN'),
-                        sg.Button('4', **btn_pad ,key='T4' ),
-                        sg.Button('5', **btn_pad ,key='T5' ),
-                        sg.Button('6', **btn_pad , key='T6' ),
-                    ],
-                    [
-                        sg.Button('\u2192', **btn_pad, key='RIGHT'),
-                        sg.Button('1', **btn_pad, key='T1'),
-                        sg.Button('2', **btn_pad, key='T2'),
-                        sg.Button('3', **btn_pad, key='T3'),
-
-                    ],
-                    [
-                        sg.Button('\u2190', **btn_pad, key='LEFT'),
-                        sg.Button('0', **btn_pad, key='T0'),
-                        sg.Button('Enter', **btn_ent, key='ENTER'),
-                    ],
-                    [
-                        sg.Button('<<', **btn_pad_pg, key='BACK-SPACE'),
-                        sg.Button('Dn', **btn_pad_pg, key='TPD'),
-                        sg.Button('.', **btn_pad, key='FULL-STOP'),
-                        sg.Button('TAB', **btn_pad, key='TAB')
-                    ]
-                ], size=(col2_w, 290), vertical_alignment='top')
-        ],
-        [
-            sg.Column(
-                [
-                ], size=(col2_w, 63), vertical_alignment='top')
-        ]
-    ]
-
+"""
     layout_main = [
         [
             sg.Column(col_1_Layout, background_color='lightblue', vertical_alignment='top'),
@@ -243,7 +245,7 @@ class InvoiceLayout:
             sg.Column(col_2_Layout, background_color='lightblue', vertical_alignment='top'),
         ]
     ]
-
+"""
 
 """"
     layout_column_1 = [

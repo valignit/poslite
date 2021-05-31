@@ -1,12 +1,7 @@
 import PySimpleGUI as sg
 import json
-import sys
 from DBOperations import DBOperations
 from loginLayout import loginLayout
-import platform
-from datetime import date
-import tkinter as tk
-from tkinter import *
 from InvoiceLayout import InvoiceLayout
 from pynput.keyboard import Key, Controller
 
@@ -38,7 +33,10 @@ header = loginLayout.header()
 footer = loginLayout.footer()
 buttonLayout = loginLayout.loginButtons()
 
-navigationWindow = None
+kb = Controller()
+w, h = sg.Window.get_screen_size()
+win_w = w
+win_h = h
 
 def open_popup_chg_qty(row_item, list_item):
     layout_chg_qty = [
@@ -144,17 +142,28 @@ def proc_barcode(barcode):
             window.Element('-BARCODE-NB-').set_focus()
             sum_item_list()
 
+def createInvoiceWin():
+    #layoutMain = InvoiceLayout.layout_main
 
-def invoiceEntry():
-    kb = Controller()
-    w, h = sg.Window.get_screen_size()
-    win_w = w
-    win_h = h
-    invWindow = sg.Window('POS', InvoiceLayout.layout_main,
+    col_1_Layout = InvoiceLayout.col1(self=InvoiceLayout)
+    col_2_Layout = InvoiceLayout.col2(self=InvoiceLayout)
+
+    layout_main = [
+        [
+            sg.Column(col_1_Layout, background_color='lightblue', vertical_alignment='top'),
+
+            sg.Column(col_2_Layout, background_color='lightblue', vertical_alignment='top'),
+        ]
+    ]
+
+    return sg.Window('POS', layout_main ,
                        font='Helvetica 11', finalize=True, location=(0, 0), size=(win_w, win_h), keep_on_top=True,
-                       resizable=True, return_keyboard_events=True, use_default_focus=False
+                       resizable=True, return_keyboard_events=True
                        )
 
+
+def invoiceEntry():
+    invWindow = createInvoiceWin()
     prev_event = ''
     focus_element = ''
     while True:
@@ -165,9 +174,10 @@ def invoiceEntry():
         if event == sg.WIN_CLOSED:
             invWindow.close()
             break
-        if event == 'Escape:27':
+        if event == 'Escape:27' or event == 'Exit':
             invWindow.close()
-            navigationWindow.UnHide()
+            invWindow = None
+            navigation()
             window['-LOGINUSER-'].update('')
             window['-LOGINPWD-'].update('')
             window.Element('-LOGINUSER-').set_focus()
@@ -256,7 +266,7 @@ def invoiceEntry():
 
 def navigation():
     navigationMenu = loginLayout.navigationMenu()
-    navigationWindow = sg.Window('Navigation Window', navigationMenu, enable_close_attempted_event=True, no_titlebar=True, keep_on_top=True,size=(350, 500), return_keyboard_events=True, finalize=True)
+    navigationWindow = sg.Window('Navigation Window', navigationMenu, enable_close_attempted_event=True, no_titlebar=True, modal=True,size=(350, 500), return_keyboard_events=True, finalize=True)
 
     navigationWindow.bind('<Escape>', exitPos())
     navigationWindow.bind('<F1>', '')
@@ -266,9 +276,13 @@ def navigation():
 
     while True:             # Event Loop
         event, values = navigationWindow.Read()
-        print("event",event)
-        if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event is None or event == sg.WIN_CLOSED:
-            sys.exit(0)
+        print("navigation event",event)
+        if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == sg.WIN_CLOSED:
+            window.UnHide()
+            window['-LOGINUSER-'].update('')
+            window['-LOGINPWD-'].update('')
+            window.Element('-LOGINUSER-').set_focus()
+            break
 
         if event == '-SignOut-' or event == '<Escape>':
             navigationWindow.hide()
@@ -277,10 +291,9 @@ def navigation():
             window['-LOGINPWD-'].update('')
             window.Element('-LOGINUSER-').set_focus()
             break
-
-        if event == '-Invoice-' or event == '<F2>':
+        if event == '-Invoice-' or event == 'F2:113':
             print('invoice screen')
-            navigationWindow.hide()
+            navigationWindow.close()
             invoiceEntry()
     navigationWindow.Close()
 
