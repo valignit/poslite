@@ -164,6 +164,8 @@ def createInvoiceWin():
 
 def invoiceEntry():
     invWindow = createInvoiceWin()
+    invWindow.force_focus()
+    invWindow['-BARCODE-NB-'].set_focus()
     prev_event = ''
     focus_element = ''
     while True:
@@ -274,27 +276,31 @@ def navigation():
     navigationWindow.bind('<F3>', '')
     navigationWindow.bind('<F4>', '')
 
+    winFocus = 0
     while True:             # Event Loop
         event, values = navigationWindow.Read()
         print("navigation event",event)
         if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == sg.WIN_CLOSED:
-            window.UnHide()
-            window['-LOGINUSER-'].update('')
-            window['-LOGINPWD-'].update('')
-            window.Element('-LOGINUSER-').set_focus()
+            winFocus = 1
             break
 
         if event == '-SignOut-' or event == '<Escape>':
             navigationWindow.hide()
-            window.UnHide()
-            window['-LOGINUSER-'].update('')
-            window['-LOGINPWD-'].update('')
-            window.Element('-LOGINUSER-').set_focus()
+            winFocus = 1
             break
         if event == '-Invoice-' or event == 'F2:113':
             print('invoice screen')
             navigationWindow.close()
             invoiceEntry()
+
+    if winFocus == 1:
+        window.UnHide()
+        window['-LOGINUSER-'].update('')
+        window['-LOGINPWD-'].update('')
+        window.force_focus()
+        window.Element('-LOGINUSER-').SetFocus()
+        print('login window open')
+
     navigationWindow.Close()
 
 
@@ -320,7 +326,7 @@ window.Element('-LOGINUSER-').set_focus()
 
 while True:
     event, values = window.read()
-    #print(event, values)
+    print("main window = ", event, values)
     if (event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == 'Exit') and sg.popup_yes_no('Do you really want to exit?',title='Confirmation', keep_on_top=True) == 'Yes':
             break
     if event == '<Escape>':
