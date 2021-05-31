@@ -48,7 +48,7 @@ class InvoiceLayout:
     sum_info: dict = {'readonly': True, 'disabled_readonly_text_color': 'gray',
                       'disabled_readonly_background_color': 'gray89', 'font': ("Helvetica", 11), 'size': (12, 1)}
     sum_info_font: dict = {'font': ('Helvetica 11'), 'justification': 'right', 'size': (10, 1)}
-    inv_label_font: dict = {'size': (15, 1), 'font': ('Helvetica 20')}
+    inv_label_font: dict = {'size': (15, 1), 'font': ('Helvetica 10')}
     btn_ent: dict = {'size': (element_w, element_h), 'font': 'Helvetica 11 bold', 'button_color': 'cornflower blue'}
 
     def col1(self):
@@ -65,7 +65,7 @@ class InvoiceLayout:
                                 sg.Text('Date:', **self.input_font),
                                 sg.Input(key='-DATE-', **self.input_fld,default_text=self.today.strftime("%m/%d/%y"))
                             ]
-                        ], size=self.col1_size, vertical_alignment='top')
+                            ], size=self.col1_size, vertical_alignment='top', scrollable='True')
                 ],
                 [
                     sg.Column(
@@ -74,18 +74,18 @@ class InvoiceLayout:
                                 sg.Text('Invoice No', **self.input_font),
                                 sg.Input(key='-INVOICE_NO-',**self.input_fld),
                                 sg.Text('Reference No:', **self.input_font),
-                                sg.Input(key='-REFERENCE_NO-', **self.input_font),
+                                sg.Input(key='-REFERENCE_NO-', **self.input_fld),
                                 sg.Text('Mobile No.:', **self.input_font),
                                 sg.Input(key='-MOBILE_NO-', **self.input_fld),
                                 sg.Text('Customer:', **self.input_font),
                                 sg.Input(key='-CUSTOMER-', **self.input_fld),
-                                sg.Text('UNPAID', font=("Helvetica", 15)),
+                                sg.Text('UNPAID', font=("Helvetica", 10)),
                                 sg.Button('PREV\n←', size=(8, 2), font='Calibri 12 bold', key='PREV',
                                           button_color=self.pad_button_color),
                                 sg.Button('NEXT\n→', size=(8, 2), font='Calibri 12 bold', key='NEXT',
                                           button_color=self.pad_button_color)
                             ]
-                        ], size=self.col1_size, vertical_alignment='top')
+                        ], size=self.col1_size, vertical_alignment='top',scrollable='True')
                 ],
                 [
                     sg.Column(
@@ -99,7 +99,7 @@ class InvoiceLayout:
                                 sg.Input(key='-ITEMNAME-', background_color='White', font=("Helvetica", 12), size=(15, 1)),
                                 sg.Button('Search Item', border_width=2,**self.btm_btn , key='-SEARCH-ITME-'),
                             ]
-                        ], size=self.col1_size, vertical_alignment='top')
+                        ], size=self.col1_size, vertical_alignment='top', scrollable='True')
                 ],
                 [
                     sg.Column(
@@ -120,7 +120,7 @@ class InvoiceLayout:
                                          bind_return_key=True
                                          )
                             ]
-                        ], size=(self.col1_w, self.tab_h), vertical_alignment='top'
+                        ], size=(self.col1_w, self.tab_h), vertical_alignment='top', scrollable='True'
                     )
                 ],
                 [
@@ -144,7 +144,7 @@ class InvoiceLayout:
                                 sg.Button('Esc-Exit', border_width=2,**self.btm_btn, key='ESC')
 
                             ]
-                        ], size=(self.col1_w, 150), vertical_alignment='top')
+                        ], size=(self.col1_w, 150), vertical_alignment='top', scrollable='True')
                 ]
             ]
 
@@ -156,7 +156,7 @@ class InvoiceLayout:
                         [
                             sg.Image(filename='company-logo.GIF')
                         ]
-                    ], size=(self.col2_w, 90), vertical_alignment='top')
+                    ], size=(self.col2_w, 90), vertical_alignment='top', scrollable='True')
             ],
             [
                 sg.Column(
@@ -193,7 +193,7 @@ class InvoiceLayout:
                             sg.Text('Paid Amt:',  **self.sum_info_font),
                             sg.Input(key='-PAID-AMT-', **self.sum_info)
                         ]
-                    ], size=(self.col2_w, 220), vertical_alignment='top')
+                    ], size=(self.col2_w, 220), vertical_alignment='top', scrollable='True')
             ],
             [
                 sg.Column(
@@ -229,12 +229,12 @@ class InvoiceLayout:
                             sg.Button('.', **self.btn_pad, key='FULL-STOP'),
                             sg.Button('TAB', **self.btn_pad, key='TAB')
                         ]
-                    ], size=(self.col2_w, 290), vertical_alignment='top')
+                    ], size=(self.col2_w, 290), vertical_alignment='top', scrollable='True')
             ],
             [
                 sg.Column(
                     [
-                    ], size=(self.col2_w, 63), vertical_alignment='top')
+                    ], size=(self.col2_w, 63), vertical_alignment='top', scrollable='True')
             ]
         ]
 """
