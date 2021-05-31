@@ -81,7 +81,7 @@ def open_popup_chg_qty(row_item, list_item):
     popup_chg_qty.close()
 
 
-def sum_item_list():
+def sum_item_list(winObj):
     line_items = 0
     total_qty = 0.0
     total_price = 0.0
@@ -95,20 +95,20 @@ def sum_item_list():
         total_tax += float(row_item[8])
         total_net_price += float(row_item[9])
 
-    window.Element('-LINE-ITEMS-').update(value=str(line_items))
-    window.Element('-TOTAL-QTY-').update(value="{:.2f}".format(total_qty))
-    window.Element('-TOTAL-PRICE-').update(value="{:.2f}".format(total_price))
-    window.Element('-TOTAL-TAX-').update(value="{:.2f}".format(total_tax))
-    window.Element('-NET-PRICE-').update(value="{:.2f}".format(total_net_price))
-    window.Element('-INVOICE-AMT-').update(value="{:.2f}".format(total_net_price))
+    winObj.Element('-LINE-ITEMS-').update(value=str(line_items))
+    winObj.Element('-TOTAL-QTY-').update(value="{:.2f}".format(total_qty))
+    winObj.Element('-TOTAL-PRICE-').update(value="{:.2f}".format(total_price))
+    winObj.Element('-TOTAL-TAX-').update(value="{:.2f}".format(total_tax))
+    winObj.Element('-NET-PRICE-').update(value="{:.2f}".format(total_net_price))
+    winObj.Element('-INVOICE-AMT-').update(value="{:.2f}".format(total_net_price))
 
-def proc_barcode(barcode):
+def proc_barcode(barcode,winObj):
 
     if len(barcode) > 12:
         print('barcode=', barcode)
         #db_pos_cur.execute("SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = '" + barcode + "'")
         #db_item_row = db_pos_cur.fetchone()
-        db_item_row = 1
+        db_item_row =  dbOperation.getItemDetails(barcode)
         if db_item_row is None:
             print('Item not found')
         else:
@@ -137,10 +137,10 @@ def proc_barcode(barcode):
             row_item.append("{:.2f}".format(net_price))
             InvoiceLayout.list_items.append(row_item)
             print(InvoiceLayout.list_items)
-            window.Element('-TABLE-').update(values=InvoiceLayout.list_items)
-            window.Element('-BARCODE-NB-').update(value='')
-            window.Element('-BARCODE-NB-').set_focus()
-            sum_item_list()
+            winObj.Element('-TABLE-').update(values=InvoiceLayout.list_items)
+            winObj.Element('-BARCODE-NB-').update(value='')
+            winObj.Element('-BARCODE-NB-').set_focus()
+            sum_item_list(winObj)
 
 def createInvoiceWin():
     #layoutMain = InvoiceLayout.layout_main
@@ -218,7 +218,7 @@ def invoiceEntry():
             window.Element('-BARCODE-NB-').update(value=inp_val)
 
         if event in ('\t', 'TAB') and prev_event == '-BARCODE-NB-':
-            proc_barcode(str(values['-BARCODE-NB-']))
+            proc_barcode(str(values['-BARCODE-NB-']),invWindow)
 
         if event in ('\t', 'TAB') and prev_event == '-ITEM_NAME-':
             window['-TABLE-'].Widget.config(takefocus=1)
@@ -326,7 +326,7 @@ window.Element('-LOGINUSER-').set_focus()
 
 while True:
     event, values = window.read()
-    print("main window = ", event, values)
+    #print("main window = ", event, values)
     if (event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == 'Exit') and sg.popup_yes_no('Do you really want to exit?',title='Confirmation', keep_on_top=True) == 'Yes':
             break
     if event == '<Escape>':
