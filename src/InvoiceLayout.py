@@ -30,9 +30,17 @@ class InvoiceLayout:
 
     element_w = 10
     element_h = 2
+    fontsize = int(8)
+    inputsize = int(10)
+    #tablecolumnsize = [8, 15, 20, 5, 5, 10, 10, 8, 10, 10]
+    tablecolumnsize = [8, 8, 18, 5, 5, 7, 7, 7, 7, 7]
+    #f'-COL{layout}-'
     if win_w > 1250:
         element_w = 15
         element_h = 2
+        fontsize = int(12)
+        inputsize = int(12)
+        tablecolumnsize = [12, 12, 20, 10, 10, 10, 10, 10, 10],
 
     col1_size = (col1, 50)
     col1_w = col1
@@ -42,13 +50,15 @@ class InvoiceLayout:
     btn_pad_pg: dict = {'size': (4, 2), 'font': ('Helvetica 11 bold'), 'button_color': ("sky blue")}
     btn_pad: dict = {'size': (4, 2), 'font': ('Helvetica 11 bold'), 'button_color': ("sky blue")}
     input_fld: dict = {'readonly': 'True', 'disabled_readonly_text_color': 'gray',
-                       'disabled_readonly_background_color': 'gray89', 'font': ("Helvetica", 12), 'size': (15, 1)}
-    input_font: dict = {'font': ('Helvetica 12')}
-    btm_btn: dict = {'size': (10, 2), 'font': 'Helvetica 11 bold'}
+                       'disabled_readonly_background_color': 'gray89', 'font': ("Helvetica", inputsize), 'size': (inputsize, 1)}
+    input_fld_font: dict = {'font': ("Helvetica", inputsize), 'size': (inputsize, 1)}
+
+    input_font: dict = {'font': (f'Helvetica {fontsize}')}
+    btm_btn: dict = {'size': (10, 2), 'font': f'Helvetica {fontsize} bold'}
     sum_info: dict = {'readonly': True, 'disabled_readonly_text_color': 'gray',
-                      'disabled_readonly_background_color': 'gray89', 'font': ("Helvetica", 11), 'size': (12, 1)}
-    sum_info_font: dict = {'font': ('Helvetica 11'), 'justification': 'right', 'size': (10, 1)}
-    inv_label_font: dict = {'size': (15, 1), 'font': ('Helvetica 10')}
+                      'disabled_readonly_background_color': 'gray89', 'font': ("Helvetica", inputsize), 'size': (inputsize, 1)}
+    sum_info_font: dict = {'font': (f'Helvetica {fontsize}'), 'justification': 'right', 'size': (inputsize, 1)}
+    inv_label_font: dict = {'size': (15, 1), 'font': ('Helvetica 20')}
     btn_ent: dict = {'size': (element_w, element_h), 'font': 'Helvetica 11 bold', 'button_color': 'cornflower blue'}
 
     def col1(self):
@@ -65,7 +75,7 @@ class InvoiceLayout:
                                 sg.Text('Date:', **self.input_font),
                                 sg.Input(key='-DATE-', **self.input_fld,default_text=self.today.strftime("%m/%d/%y"))
                             ]
-                            ], size=self.col1_size, vertical_alignment='top', scrollable='True')
+                            ], size=self.col1_size, vertical_alignment='top')
                 ],
                 [
                     sg.Column(
@@ -79,27 +89,27 @@ class InvoiceLayout:
                                 sg.Input(key='-MOBILE_NO-', **self.input_fld),
                                 sg.Text('Customer:', **self.input_font),
                                 sg.Input(key='-CUSTOMER-', **self.input_fld),
-                                sg.Text('UNPAID', font=("Helvetica", 10)),
-                                sg.Button('PREV\n←', size=(8, 2), font='Calibri 12 bold', key='PREV',
+                                sg.Text('UNPAID', font=("Helvetica", self.fontsize)),
+                                sg.Button('PREV\n←', size=(8, 2), font=f'Calibri {self.fontsize} bold', key='PREV',
                                           button_color=self.pad_button_color),
-                                sg.Button('NEXT\n→', size=(8, 2), font='Calibri 12 bold', key='NEXT',
+                                sg.Button('NEXT\n→', size=(8, 2), font=f'Calibri {self.fontsize} bold', key='NEXT',
                                           button_color=self.pad_button_color)
                             ]
-                        ], size=self.col1_size, vertical_alignment='top',scrollable='True')
+                        ], size=self.col1_size, vertical_alignment='top')
                 ],
                 [
                     sg.Column(
                         [
                             [
-                                sg.Text('Barcode:', size=(8, 1), font=("Helvetica", 12)),
-                                sg.Input(key='-BARCODE-NB-', background_color='White', font=("Helvetica", 12), size=(15, 1), focus=True,enable_events=True),
-                                sg.Text('Item Name:', size=(12, 1), font=("Helvetica", 12)),
+                                sg.Text('Barcode:', size=(8, 1), **self.input_font),
+                                sg.Input(key='-BARCODE-NB-', **self.input_fld_font, enable_events = True),
+                                sg.Text('Item Name:', **self.input_font),
                                 sg.InputCombo(('8901314010322'), background_color='White' ,auto_size_text=True, font=("Helvetica", 12),
                                               size=(20, 20), key='Item-Name' ),
-                                sg.Input(key='-ITEMNAME-', background_color='White', font=("Helvetica", 12), size=(15, 1)),
+                                sg.Input(key='-ITEMNAME-', **self.input_fld_font),
                                 sg.Button('Search Item', border_width=2,**self.btm_btn , key='-SEARCH-ITME-'),
                             ]
-                        ], size=self.col1_size, vertical_alignment='top', scrollable='True')
+                        ], size=self.col1_size, vertical_alignment='top')
                 ],
                 [
                     sg.Column(
@@ -115,13 +125,12 @@ class InvoiceLayout:
                                          row_height=25,
                                          alternating_row_color='lightsteelBlue1',
                                          num_rows=15,
-                                         col_widths=[12, 10, 10, 10, 10, 10, 12, 10, 12],
+                                         col_widths=self.tablecolumnsize,
                                          enable_events=True,
                                          bind_return_key=True
                                          )
                             ]
-                        ], size=(self.col1_w, self.tab_h), vertical_alignment='top', scrollable='True'
-                    )
+                        ], size=(self.col1_w, self.tab_h))
                 ],
                 [
                     sg.Column(
@@ -144,7 +153,7 @@ class InvoiceLayout:
                                 sg.Button('Esc-Exit', border_width=2,**self.btm_btn, key='ESC')
 
                             ]
-                        ], size=(self.col1_w, 150), vertical_alignment='top', scrollable='True')
+                        ], size=(self.col1_w, 150), vertical_alignment='top')
                 ]
             ]
 
@@ -156,7 +165,7 @@ class InvoiceLayout:
                         [
                             sg.Image(filename='company-logo.GIF')
                         ]
-                    ], size=(self.col2_w, 90), vertical_alignment='top', scrollable='True')
+                    ], size=(self.col2_w, 90), vertical_alignment='top')
             ],
             [
                 sg.Column(
@@ -193,7 +202,7 @@ class InvoiceLayout:
                             sg.Text('Paid Amt:',  **self.sum_info_font),
                             sg.Input(key='-PAID-AMT-', **self.sum_info)
                         ]
-                    ], size=(self.col2_w, 220), vertical_alignment='top', scrollable='True')
+                    ], size=(self.col2_w, 220), vertical_alignment='top')
             ],
             [
                 sg.Column(
@@ -229,12 +238,12 @@ class InvoiceLayout:
                             sg.Button('.', **self.btn_pad, key='FULL-STOP'),
                             sg.Button('TAB', **self.btn_pad, key='TAB')
                         ]
-                    ], size=(self.col2_w, 290), vertical_alignment='top', scrollable='True')
+                    ], size=(self.col2_w, 290), vertical_alignment='top')
             ],
             [
                 sg.Column(
                     [
-                    ], size=(self.col2_w, 63), vertical_alignment='top', scrollable='True')
+                    ], size=(self.col2_w, 63), vertical_alignment='top')
             ]
         ]
 """
