@@ -130,7 +130,7 @@ def open_popup_chg_qty(row_item, list_item):
 # Save the Invoice to DB
 def save_invoice():
     reference_number = window.Element('-REFERENCE_NO-').get()
-    if reference_number == '':
+    if reference_number == '' and len(list_items) > 0:
         insert_invoice()
     else:
         update_invoice()
@@ -161,7 +161,6 @@ def insert_invoice():
     cgst_tax_amount = window.Element('-TOTAL-CGST-').get()
     sgst_tax_amount = window.Element('-TOTAL-SGST-').get()
     terminal_id = window.Element('-TERMINAL-').get()  
-    
     db_pos_sql_stmt = ("INSERT INTO tabInvoice (name, posting_date, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount, terminal_id, creation, owner)"
                         "VALUES (%s, now(), %s, %s, %s, %s, %s, %s, now(), %s)")
     db_pos_sql_data = (reference_number, '0000000000', total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount, terminal_id, ws_erp_user)
@@ -179,18 +178,18 @@ def insert_invoice():
         item_code = row_item[0]
         qty = row_item[4]
         selling_price = row_item[6]
-        total_cgst = row_item[10]
-        total_sgst = row_item[11]
+        cgst_tax_rate = row_item[10]
+        sgst_tax_rate = row_item[11]
         name = reference_number + f"{item_count:04d}"
         print(name)
 
-        db_pos_sql_stmt = ("INSERT INTO `tabInvoice Item` (name, parent, item_code, qty, standard_selling_price, applied_selling_price, cgst_tax_amount, sgst_tax_amount)"
+        db_pos_sql_stmt = ("INSERT INTO `tabInvoice Item` (name, parent, item_code, qty, standard_selling_price, applied_selling_price, cgst_tax_rate, sgst_tax_rate)"
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)")
-        db_pos_sql_data = (name, reference_number, item_code, qty, selling_price, selling_price, cgst_tax_amount, sgst_tax_amount)
+        db_pos_sql_data = (name, reference_number, item_code, qty, selling_price, selling_price, cgst_tax_rate, sgst_tax_rate)
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")    
+            print(f"POS database error1: {db_err}")    
             db_pos_conn.rollback()
             db_pos_conn.close()
             sys.exit(1)    
@@ -236,14 +235,14 @@ def update_invoice():
         item_code = row_item[0]
         qty = row_item[4]
         selling_price = row_item[6]
-        total_cgst = row_item[10]
-        total_sgst = row_item[11]
+        cgst_tax_rate = row_item[10]
+        sgst_tax_rate = row_item[11]
         name = reference_number + f"{item_count:04d}"
         print(name)
 
-        db_pos_sql_stmt = ("INSERT INTO `tabInvoice Item` (name, parent, item_code, qty, standard_selling_price, applied_selling_price, cgst_tax_amount, sgst_tax_amount)"
+        db_pos_sql_stmt = ("INSERT INTO `tabInvoice Item` (name, parent, item_code, qty, standard_selling_price, applied_selling_price, cgst_tax_rate, sgst_tax_rate)"
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)")
-        db_pos_sql_data = (name, reference_number, item_code, qty, selling_price, selling_price, cgst_tax_amount, sgst_tax_amount)
+        db_pos_sql_data = (name, reference_number, item_code, qty, selling_price, selling_price, cgst_tax_rate, sgst_tax_rate)
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
@@ -306,7 +305,7 @@ def clear_invoice():
     window.Element('-MOBILE_NO-').update(value='')
 
     
-def previous_invoice():
+def goto_previous_invoice():
     print('prev')
     reference_number = window.Element('-REFERENCE_NO-').get()
     if (reference_number == ''):
@@ -337,7 +336,7 @@ def previous_invoice():
         window.Element('-REFERENCE_NO-').update(value= reference_number)
         mobile_number = db_invoice_row[2]
         window.Element('-MOBILE_NO-').update(value= mobile_number)
-        db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, cgst_tax_amount,sgst_tax_amount from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
+        db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         print(db_pos_sql_stmt)
         try:
@@ -374,7 +373,6 @@ def previous_invoice():
             row_item.append("{:.2f}".format(selling_amount))  
             row_item.append("{:.2f}".format(tax_rate))  
             row_item.append("{:.2f}".format(tax_amount))  
-            row_item.append("{:.2f}".format(selling_amount))  
             row_item.append("{:.2f}".format(net_amount))  
             row_item.append("{:.2f}".format(cgst_tax_rate))  
             row_item.append("{:.2f}".format(sgst_tax_rate))  
@@ -383,7 +381,7 @@ def previous_invoice():
         sum_item_list()
 
 
-def next_invoice():
+def goto_next_invoice():
     print('next')
     reference_number = window.Element('-REFERENCE_NO-').get()
     if (reference_number == ''):
@@ -408,7 +406,7 @@ def next_invoice():
         window.Element('-REFERENCE_NO-').update(value= reference_number)
         mobile_number = db_invoice_row[2]
         window.Element('-MOBILE_NO-').update(value= mobile_number)
-        db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, cgst_tax_amount,sgst_tax_amount from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
+        db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         print(db_pos_sql_stmt)
         try:
@@ -445,7 +443,6 @@ def next_invoice():
             row_item.append("{:.2f}".format(selling_amount))  
             row_item.append("{:.2f}".format(tax_rate))  
             row_item.append("{:.2f}".format(tax_amount))  
-            row_item.append("{:.2f}".format(selling_amount))  
             row_item.append("{:.2f}".format(net_amount))  
             row_item.append("{:.2f}".format(cgst_tax_rate))  
             row_item.append("{:.2f}".format(sgst_tax_rate))  
@@ -453,6 +450,136 @@ def next_invoice():
             window.Element('-TABLE-').update(values=list_items)
         sum_item_list()       
     
+def goto_last_invoice():
+    print('last')
+    db_pos_sql_stmt = ("SELECT name, posting_date, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
+
+    try:
+        db_pos_cur.execute(db_pos_sql_stmt)
+    except mariadb.Error as db_err:
+        print(f"POS database error: {db_err}")       
+        db_pos_conn.close()
+        sys.exit(1)
+    
+    db_invoice_row = db_pos_cur.fetchone()
+    if db_invoice_row is None:
+        print('Invoice not found')
+    else:
+        print('here1 ', db_invoice_row[0])
+        reference_number = db_invoice_row[0]
+        window.Element('-REFERENCE_NO-').update(value= reference_number)
+        mobile_number = db_invoice_row[2]
+        window.Element('-MOBILE_NO-').update(value= mobile_number)
+        db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
+        db_pos_sql_data = (reference_number,)
+        print(db_pos_sql_stmt)
+        try:
+            db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
+        except mariadb.Error as db_err:
+            print(f"POS database error: {db_err}")       
+            db_pos_conn.close()
+            sys.exit(1)
+        print('here2 ', db_invoice_row[0])
+            
+        db_items = db_pos_cur.fetchall()
+        row_item = []
+        list_items.clear()
+        
+        for db_item_row in db_items:
+            item_code = db_item_row[0]
+            item_name = db_item_row[1]
+            barcode = db_item_row[2]
+            uom = db_item_row[3]
+            qty = db_item_row[4]
+            selling_price = db_item_row[5]
+            cgst_tax_rate = db_item_row[7]
+            sgst_tax_rate = db_item_row[8]
+            selling_amount = float(qty) * float(selling_price)
+            tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
+            print(tax_rate, cgst_tax_rate, sgst_tax_rate)
+            tax_amount = selling_amount * tax_rate / 100
+            net_amount = selling_amount + tax_amount  
+            row_item.append(item_code)  
+            row_item.append(barcode)  
+            row_item.append(item_name)  
+            row_item.append(uom)  
+            row_item.append(qty)  
+            row_item.append("{:.2f}".format(selling_price))  
+            row_item.append("{:.2f}".format(selling_amount))  
+            row_item.append("{:.2f}".format(tax_rate))  
+            row_item.append("{:.2f}".format(tax_amount))  
+            row_item.append("{:.2f}".format(net_amount))  
+            row_item.append("{:.2f}".format(cgst_tax_rate))  
+            row_item.append("{:.2f}".format(sgst_tax_rate))  
+            list_items.append(row_item)
+            window.Element('-TABLE-').update(values=list_items)
+        sum_item_list()       
+
+
+def goto_first_invoice():
+    print('first')
+    db_pos_sql_stmt = ("SELECT name, posting_date, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select min(name) from tabInvoice)")
+
+    try:
+        db_pos_cur.execute(db_pos_sql_stmt)
+    except mariadb.Error as db_err:
+        print(f"POS database error1: {db_err}")       
+        db_pos_conn.close()
+        sys.exit(1)
+    
+    db_invoice_row = db_pos_cur.fetchone()
+    if db_invoice_row is None:
+        print('Invoice not found')
+    else:
+        print('here1 ', db_invoice_row[0])
+        reference_number = db_invoice_row[0]
+        window.Element('-REFERENCE_NO-').update(value= reference_number)
+        mobile_number = db_invoice_row[2]
+        window.Element('-MOBILE_NO-').update(value= mobile_number)
+        db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate, inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
+        db_pos_sql_data = (reference_number,)
+        print(db_pos_sql_stmt)
+        try:
+            db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
+        except mariadb.Error as db_err:
+            print(f"POS database error2: {db_err}")       
+            db_pos_conn.close()
+            sys.exit(1)
+        print('here2 ', db_invoice_row[0])
+            
+        db_items = db_pos_cur.fetchall()
+        row_item = []
+        list_items.clear()
+        
+        for db_item_row in db_items:
+            item_code = db_item_row[0]
+            item_name = db_item_row[1]
+            barcode = db_item_row[2]
+            uom = db_item_row[3]
+            qty = db_item_row[4]
+            selling_price = db_item_row[5]
+            cgst_tax_rate = db_item_row[7]
+            sgst_tax_rate = db_item_row[8]
+            selling_amount = float(qty) * float(selling_price)
+            tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
+            tax_amount = selling_amount * tax_rate / 100
+            net_amount = selling_amount + tax_amount  
+            row_item.append(item_code)  
+            row_item.append(barcode)  
+            row_item.append(item_name)  
+            row_item.append(uom)  
+            row_item.append(qty)  
+            row_item.append("{:.2f}".format(selling_price))  
+            row_item.append("{:.2f}".format(selling_amount))  
+            row_item.append("{:.2f}".format(tax_rate))  
+            row_item.append("{:.2f}".format(tax_amount))  
+            row_item.append("{:.2f}".format(net_amount))  
+            row_item.append("{:.2f}".format(cgst_tax_rate))  
+            row_item.append("{:.2f}".format(sgst_tax_rate))  
+            list_items.append(row_item)
+            window.Element('-TABLE-').update(values=list_items)
+        sum_item_list()       
+
 
 ##############################
 # Main
@@ -497,14 +624,16 @@ layout_column_1 = [
         [
             [
                 sg.Text('Invoice No:', size=(8,1),  font=("Helvetica", 12)),
-                sg.Input(key='-INVOICE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='SINV-0010' ,font=("Helvetica", 12),size=(15,1)),
+                sg.Input(key='-INVOICE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='SINV-0010' ,font=("Helvetica", 12),size=(10,1)),
                 sg.Text('Reference No:', size=(8,1),  font=("Helvetica", 12)),
-                sg.Input(key='-REFERENCE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='' ,font=("Helvetica", 12),size=(15,1)),
+                sg.Input(key='-REFERENCE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='' ,font=("Helvetica", 12),size=(10,1)),
                 sg.Text('Mobile No:', size=(8,1),  font=("Helvetica", 12)),
                 sg.Input(key='-MOBILE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='0000000000' ,font=("Helvetica", 12),size=(15,1)),
                 sg.Text('UNPAID', size=(7,1),font=("Helvetica", 15)),
-                sg.Button('PREV\n←', size=(8, 2), font='Calibri 12 bold', key='PREV', button_color = pad_button_color),
-                sg.Button('NEXT\n→', size=(8, 2), font='Calibri 12 bold', key='NEXT', button_color = pad_button_color),    
+                sg.Button('BEGN\n<<', size=(6, 2), font='Calibri 12 bold', key='BEGN', button_color = pad_button_color),
+                sg.Button('PREV\n<', size=(6, 2), font='Calibri 12 bold', key='PREV', button_color = pad_button_color),
+                sg.Button('NEXT\n>', size=(6, 2), font='Calibri 12 bold', key='NEXT', button_color = pad_button_color),    
+                sg.Button('END\n>>', size=(6, 2), font='Calibri 12 bold', key='END', button_color = pad_button_color),    
             ]
         ], size = (985,60), vertical_alignment = 'top', pad = None)    
     ],
@@ -723,18 +852,25 @@ window['-REFERENCE_NO-'].Widget.config(takefocus=0)
 window['-MOBILE_NO-'].Widget.config(takefocus=0)
 window['PREV'].Widget.config(takefocus=0)
 window['NEXT'].Widget.config(takefocus=0)
-                   
+
+######
+# Set focus to Barcode (first field)                   
 window.Element('-BARCODE-NB-').SetFocus() 
 
+
+######
+# Initialize Bind Variables                   
 reference_number = ''
 invoice_number = ''
 line_items = 0
 total_qty = 0.0
-total_price = 0.0
-total_tax = 0.0
-total_cgst = 0.0
-total_sgst = 0.0
-total_net_price = 0.0
+total_price = 0.00
+total_tax = 0.00
+total_cgst = 0.00
+total_sgst = 0.00
+total_net_price = 0.00
+list_items.clear()
+row_item = []
 
 
 ######
@@ -862,12 +998,24 @@ while True:
         clear_invoice()
         window.Element('-BARCODE-NB-').SetFocus()         
 
+    if event in ('BEGN'):
+        save_invoice()
+        goto_first_invoice()
+        window.Element('-BARCODE-NB-').SetFocus()         
+
     if event in ('Prior:33', 'PREV'):
-        previous_invoice()
+        save_invoice()
+        goto_previous_invoice()
         window.Element('-BARCODE-NB-').SetFocus()         
 
     if event in ('Next:33', 'NEXT'):
-        next_invoice()
+        save_invoice()
+        goto_next_invoice()
+        window.Element('-BARCODE-NB-').SetFocus()         
+
+    if event in ('END'):
+        save_invoice()
+        goto_last_invoice()
         window.Element('-BARCODE-NB-').SetFocus()         
 
     if event in ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0') and prev_event == '-BARCODE-NB-':
