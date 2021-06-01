@@ -6,11 +6,14 @@ from loginLayout import loginLayout
 from InvoiceLayout import InvoiceLayout
 from pynput.keyboard import Key, Controller
 
+
 def exitPos():
     print('Exit Pos')
 
+
 def login():
     print('login Pos')
+
 
 with open('alignpos.json') as f:
     data = json.load(f)
@@ -21,13 +24,14 @@ db_pos_name = data['db_pos_name']
 db_pos_user = data['db_pos_user']
 db_pos_passwd = data['db_pos_passwd']
 
-#dbManager =    dbManager(dbHost, dbPort, dbName, dbUser, dbPwd)
-dbOperation = DBOperations(db_pos_host,db_pos_port,db_pos_name,db_pos_user,db_pos_passwd)
+dbOperation = DBOperations(db_pos_host, db_pos_port, db_pos_name, db_pos_user, db_pos_passwd)
 itemNames = dbOperation.fetchItemName()
 
-heading: dict = {'size':(100, 1), 'font':('Helvetica 20 bold'), 'text_color':'blue'}
-txt_font: dict = {'font':('Helvetica 11 bold'), 'justification':'right', 'size':(10, 1), 'text_color':'black'}
-input_fld: dict = {'readonly':'True', 'disabled_readonly_text_color':'gray','disabled_readonly_background_color':'gray89','size':(20, 1)}
+
+heading: dict = {'size': (100, 1), 'font': ('Helvetica 20 bold'), 'text_color': 'blue'}
+txt_font: dict = {'font': ('Helvetica 11 bold'), 'justification': 'right', 'size': (10, 1), 'text_color': 'black'}
+input_fld: dict = {'readonly': 'True', 'disabled_readonly_text_color': 'gray',
+                   'disabled_readonly_background_color': 'gray89', 'size': (20, 1)}
 
 loginLayout = loginLayout()
 
@@ -40,20 +44,9 @@ w, h = sg.Window.get_screen_size()
 win_w = w
 win_h = h
 
-def open_popup_chg_qty(row_item, list_item,winObj):
-    layout_chg_qty = [
-        [sg.Text(str(list_item[2]), size=(30, 2), font=("Helvetica Bold", 12))],
-        [sg.Text('Existing Quantity:', size=(15, 1), font=("Helvetica", 11)),
-         sg.Input(key='-EXISTING-QTY-', readonly=True, background_color='gray89',
-                  disabled_readonly_text_color=InvoiceLayout.disabled_text_color, font=("Helvetica", 11), size=(15, 1))],
-        [sg.Text('New Quantity:', size=(15, 1), font=("Helvetica", 11)),
-         sg.Input(key='-NEW-QTY-', readonly=False, focus=True, background_color='white', font=("Helvetica", 11),
-                  size=(15, 1), enable_events=True)],
-        [sg.Text('')],
-        [sg.Button('F12-Ok', size=(8, 1), font='Calibri 12 bold', key='-CHG-QTY-OK-', button_color=InvoiceLayout.pad_button_color),
-         sg.Button('Esc-Exit', size=(8, 1), font='Calibri 12 bold', key='-CHG-QTY-ESC-', button_color=InvoiceLayout.pad_button_color)]
-    ]
 
+def open_popup_chg_qty(row_item, list_item, winObj):
+    layout_chg_qty = InvoiceLayout.layout_chg_qty(list_item,list_item)
     popup_chg_qty = sg.Window("Change Quantity", layout_chg_qty, location=(300, 250), size=(350, 180), modal=True,
                               finalize=True, return_keyboard_events=True, keep_on_top=True)
     popup_chg_qty.Element('-EXISTING-QTY-').update(value=str(list_item[4]))
@@ -104,13 +97,13 @@ def sum_item_list(winObj):
     winObj.Element('-NET-PRICE-').update(value="{:.2f}".format(total_net_price))
     winObj.Element('-INVOICE-AMT-').update(value="{:.2f}".format(total_net_price))
 
-def proc_barcode(barcode,winObj):
 
+def proc_barcode(barcode, winObj):
     if len(barcode) > 12:
         print('barcode=', barcode)
-        #db_pos_cur.execute("SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = '" + barcode + "'")
-        #db_item_row = db_pos_cur.fetchone()
-        db_item_row =  dbOperation.getItemDetails(barcode)
+        # db_pos_cur.execute("SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = '" + barcode + "'")
+        # db_item_row = db_pos_cur.fetchone()
+        db_item_row = dbOperation.getItemDetails(barcode)
         if db_item_row is None:
             print('Item not found')
         else:
@@ -141,72 +134,62 @@ def proc_barcode(barcode,winObj):
             print(InvoiceLayout.list_items)
             winObj.Element('-TABLE-').update(values=InvoiceLayout.list_items)
             winObj.Element('-BARCODE-NB-').update(value='')
+            winObj.Element('-ITEMNAME-').update(value='')
             winObj.Element('-BARCODE-NB-').set_focus()
             sum_item_list(winObj)
 
+
 def predict_text(searchItem, listItem):
-    print('recied= ' ,searchItem, listItem)
+    print('recied= ', searchItem, listItem)
     pattern = re.compile('.*' + searchItem + '.*')
     return [w for w in listItem if re.match(pattern, w)]
 
 
 def searchItemWin(winObj):
-    # print(predict_text('1', ['123']))
-    choices = ['item-' + str(i) for i in range(30)]
-    print("choices=", choices)
-    # print(predict_text('1', values))
-    # print(values)
-    global itemNames
-    layout = [  [sg.Text('Search Item:')],
-                [sg.In(key='_INPUT_', size=(100,1))],
-                [sg.Listbox(itemNames,  size=(100,10), key='_COMBO_', change_submits=True)],
-                [sg.Button('F12-Ok'),sg.Button('Esc-Exit')]
-             ]
-
-    window1 = sg.Window('Window Title', layout ,keep_on_top=True ,size=(400,300),return_keyboard_events=True,finalize=True)
+    layout = InvoiceLayout.search_items_layout(itemNames,itemNames)
+    window1 = sg.Window('Window Title', layout, keep_on_top=True, size=(400, 300), return_keyboard_events=True,
+                        finalize=True)
 
     window1.bind('<Escape>', '')
     list_elem = window1.Element('_COMBO_')
 
     sel_item = 0
-    while True:             # Event Loop
+    while True:  # Event Loop
         event, values = window1.Read()
         if event is None or event == 'Exit' or event == 'Escape:27':
-            #window.FindElement('-BARCODE-NB-')
+            # window.FindElement('-BARCODE-NB-')
             winObj.FindElement('-ITEMNAME-').Update('')
             winObj.FindElement('-BARCODE-NB-').Update('')
             window1.Close()
             break
 
         in_val = values['_INPUT_']
-        if len(in_val) >=2:
+        if len(in_val) >= 2:
             prediction_list = predict_text(str(in_val), itemNames)
             list_elem.Update(values=prediction_list)
             if prediction_list:
-                print('list fired',prediction_list[0])
-               # window.Element('_OUTPUT_').Update(prediction_list[0])
-                #global window
-               # values['-BARCODE-NB-'] =  prediction_list[0]
+                print('list fired', prediction_list[0])
                 justName = str(prediction_list[0]).split('~')
                 winObj.FindElement('-ITEMNAME-').Update(justName[0])
                 winObj.FindElement('-BARCODE-NB-').Update(justName[1])
-                list_elem.Widget.itemconfigure(0,bg='green',fg='white')
+                list_elem.Widget.itemconfigure(0, bg='green', fg='white')
         else:
             list_elem.Update(values=itemNames)
         if event == '_COMBO_':
-            #sg.Popup('Chose', values['_COMBO_'])
             print('Chose2', values['_COMBO_'])
-            #window.FindElement('-ITEMNAME-').Update(values['_COMBO_'])
             justName = str(values['_COMBO_']).split('~')
             winObj.FindElement('-ITEMNAME-').Update(justName[0])
             winObj.FindElement('-BARCODE-NB-').Update(justName[1])
         if event == 'Ok' or event == "F12:123":
+            winObj.FindElement('-BARCODE-NB-').set_focus()
             window1.Close()
             break
+
     window1.Close()
 
+
 def createInvoiceWin():
-    #layoutMain = InvoiceLayout.layout_main
+    # layoutMain = InvoiceLayout.layout_main
 
     col_1_Layout = InvoiceLayout.col1(self=InvoiceLayout)
     col_2_Layout = InvoiceLayout.col2(self=InvoiceLayout)
@@ -219,31 +202,31 @@ def createInvoiceWin():
         ]
     ]
 
-    return sg.Window('POS', layout_main ,
-                       font='Helvetica 11', finalize=True, location=(0, 0), size=(win_w, win_h), keep_on_top=True,
-                       resizable=True, return_keyboard_events=True,enable_close_attempted_event=True
-                       )
+    return sg.Window('POS', layout_main,
+                     font='Helvetica 11', finalize=True, location=(0, 0), size=(win_w, win_h), keep_on_top=True,
+                     resizable=True, return_keyboard_events=True, enable_close_attempted_event=True
+                     )
 
 
 def invoiceEntry():
     invWindow = createInvoiceWin()
     invWindow.force_focus()
     invWindow['-BARCODE-NB-'].set_focus()
+    invWindow['-USERID-'].update(userid)
+    invWindow['-TERMINAL-'].update(terminal)
     invWindow.bind('<Escape>', '')
+    invWindow.Maximize()
     prev_event = ''
     focus_element = ''
-    navigateWin = 0
     while True:
         event, values = invWindow.read()
         print('eventm=', event, '\nvalues=', values)
-        # print('eventm=', event, ' prev=', prev_event, ' focus=', str(focus_element))
-
-        if event ==  sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == sg.WIN_CLOSED:
+        if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == sg.WIN_CLOSED:
             if sg.popup_yes_no('Do you want to Exit?', title='Confirmation', keep_on_top=True) == 'Yes':
                 navigateWin = 1
                 break
         if event == 'Escape:27' or event == 'Exit':
-            if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
+            if sg.popup_yes_no('Do you want to Exit?', title='Confirmation', keep_on_top=True) == 'Yes':
                 navigateWin = 1
                 break
         if event == 'ESC':
@@ -280,7 +263,7 @@ def invoiceEntry():
             invWindow.Element('-BARCODE-NB-').update(value=inp_val)
 
         if event in ('\t', 'TAB') and prev_event == '-BARCODE-NB-':
-            proc_barcode(str(values['-BARCODE-NB-']),invWindow)
+            proc_barcode(str(values['-BARCODE-NB-']), invWindow)
 
         if event in ('\t', 'TAB') and prev_event == '-ITEM_NAME-':
             invWindow['-TABLE-'].Widget.config(takefocus=1)
@@ -312,7 +295,7 @@ def invoiceEntry():
             print('Selected ', sel_row)
             list_items = invWindow.Element('-TABLE-').get()
             print('Values ', list_items[sel_row])
-            open_popup_chg_qty(sel_row, list_items[sel_row],invWindow)
+            open_popup_chg_qty(sel_row, list_items[sel_row], invWindow)
             invWindow['-TABLE-'].Widget.config(takefocus=1)
             table_row = invWindow['-TABLE-'].Widget.get_children()[sel_row]
             invWindow['-TABLE-'].Widget.selection_set(table_row)  # move selection
@@ -321,7 +304,7 @@ def invoiceEntry():
             sum_item_list(invWindow)
 
         if event in ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0') and prev_event == '-BARCODE-NB-':
-            proc_barcode(str(values['-BARCODE-NB-']))
+            proc_barcode(str(values['-BARCODE-NB-']),invWindow)
 
         if event not in ('Up:38', 'Down:40', 'UP', 'DOWN', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'):
             prev_event = event
@@ -343,7 +326,9 @@ def invoiceEntry():
 
 def navigation():
     navigationMenu = loginLayout.navigationMenu()
-    navigationWindow = sg.Window('Navigation Window', navigationMenu, enable_close_attempted_event=True, no_titlebar=True, modal=True,size=(350, 500), return_keyboard_events=True, finalize=True)
+    navigationWindow = sg.Window('Navigation Window', navigationMenu, enable_close_attempted_event=True,
+                                 no_titlebar=True, modal=True, size=(350, 500), return_keyboard_events=True,
+                                 finalize=True)
 
     navigationWindow.bind('<Escape>', exitPos())
     navigationWindow.bind('<F1>', '')
@@ -352,17 +337,18 @@ def navigation():
     navigationWindow.bind('<F4>', '')
 
     winFocus = 0
-    while True:             # Event Loop
+    while True:  # Event Loop
         event, values = navigationWindow.Read()
-        print("navigation event",event)
+        print("navigation event", event)
         if event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == sg.WIN_CLOSED:
             winFocus = 1
             break
 
         if event == '-SignOut-' or event == '<Escape>':
-            navigationWindow.hide()
-            winFocus = 1
-            break
+            if sg.popup_yes_no('Do you want to Exit?', title='Confirmation', keep_on_top=True) == 'Yes':
+                navigationWindow.hide()
+                winFocus = 1
+                break
         if event == '-Invoice-' or event == 'F2:113':
             print('invoice screen')
             navigationWindow.close()
@@ -379,43 +365,46 @@ def navigation():
     navigationWindow.Close()
 
 
-
 layout = [
     [header],
     [sg.Text(' ', key='ErrMsg', size=(100, 1))],
-    [sg.Text('User Name:', **txt_font,pad=((20, 5), (10, 0))),
-     sg.In(key='-LOGINUSER-', focus=True,pad=((0, 0), (15, 5)), size=(20, 4))],
-    [sg.Text('Password:',**txt_font ,pad=((20, 5), (10, 0))),
-     sg.In(key='-LOGINPWD-' ,password_char='*', pad=((0, 0), (15, 0)), size=(20, 4))],
-    [sg.Text('Terminal:',**txt_font ,pad=((20, 5), (10, 0))),
-     sg.In(key='-TERMINAL-', default_text=data['terminal_id'],**input_fld , pad=((0, 0), (15, 5)))],
+    [sg.Text('User Name:', **txt_font, pad=((20, 5), (10, 0))),
+     sg.In(key='-LOGINUSER-', focus=True, pad=((0, 0), (15, 5)), size=(20, 4))],
+    [sg.Text('Password:', **txt_font, pad=((20, 5), (10, 0))),
+     sg.In(key='-LOGINPWD-', password_char='*', pad=((0, 0), (15, 0)), size=(20, 4))],
+    [sg.Text('Terminal:', **txt_font, pad=((20, 5), (10, 0))),
+     sg.In(key='-TERMINAL-', default_text=data['terminal_id'], **input_fld, pad=((0, 0), (15, 5)))],
     [buttonLayout],
     [footer]
 ]
 
-window = sg.Window('Login Window', layout, enable_close_attempted_event=True,no_titlebar=True,keep_on_top=True, size=(350, 450), return_keyboard_events=True,finalize=True)
+window = sg.Window('Login Window', layout, enable_close_attempted_event=True, no_titlebar=True, keep_on_top=True,
+                   size=(350, 450), return_keyboard_events=True, finalize=True)
 
 window.bind('<Escape>', exitPos())
 window.bind('<F12>', login())
 window.Element('-LOGINUSER-').set_focus()
 
+userid = None
+userpwd = None
+terminal = None
+
 while True:
     event, values = window.read()
-    #print("main window = ", event, values)
-    if (event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == 'Exit') and sg.popup_yes_no('Do you really want to exit?',title='Confirmation', keep_on_top=True) == 'Yes':
-            break
+    # print("main window = ", event, values)
+    if (event == sg.WINDOW_CLOSE_ATTEMPTED_EVENT or event == 'Exit') and sg.popup_yes_no('Do you really want to exit?',
+                                                                                         title='Confirmation',
+                                                                                         keep_on_top=True) == 'Yes':
+        break
     if event == '<Escape>':
-        if sg.popup_yes_no('Do you want to Exit?',title='Confirmation', keep_on_top=True) == 'Yes':
+        if sg.popup_yes_no('Do you want to Exit?', title='Confirmation', keep_on_top=True) == 'Yes':
             break
     if event == '<F12>' or event == '-LoginOk-' or event == '<Enter>':
-        uid = window['-LOGINUSER-'].Get()
-        pwd = window['-LOGINPWD-'].Get()
-        print('login details', uid, pwd)
-        #dbConn = DBManager.DBManager.getDBConnection()
-        #db_pos_cur = dbConn.cursor()
-        #db_pos_cur.execute("SELECT * FROM tabUser WHERE USER_ID = '" + uid + "' AND PASSWORD='" + pwd + "'")
-        #db_item_row = db_pos_cur.fetchone()
-        db_item_row = dbOperation.verifyUser(uid,pwd)
+        userid  = window['-LOGINUSER-'].Get()
+        userpwd = window['-LOGINPWD-'].Get()
+        terminal = window['-TERMINAL-'].Get()
+        print('login details', userid)
+        db_item_row = dbOperation.verifyUser(userid, userpwd)
         if db_item_row is not None:
             print('Login successfull...')
             window.hide()
@@ -423,4 +412,3 @@ while True:
         else:
             print('Login Failed.....')
             window['ErrMsg'].update('Invalid Credential')
-

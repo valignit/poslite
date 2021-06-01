@@ -3,6 +3,7 @@ import sys
 import platform
 from datetime import date
 
+
 class InvoiceLayout:
 
     reader = ""
@@ -32,17 +33,22 @@ class InvoiceLayout:
     element_h = 2
     fontsize = int(8)
     inputsize = int(10)
-    #tablecolumnsize = [8, 15, 20, 5, 5, 10, 10, 8, 10, 10]
     tablecolumnsize = [8, 8, 18, 5, 5, 7, 7, 7, 7, 7]
-    #f'-COL{layout}-'
+    row_height = 20
+    col_height = 50
     if win_w > 1250:
         element_w = 15
         element_h = 2
         fontsize = int(12)
         inputsize = int(12)
         tablecolumnsize = [12, 12, 20, 10, 10, 10, 10, 10, 10],
+        row_height = 25
+        col_height = 50
 
-    col1_size = (col1, 50)
+    col1_size = (col1, col_height)
+    inner_col1_w = int((col1 * 70 / 100))
+    inner_col2_w = int((col1 * 30 / 100))
+    print('col_split_size=',inner_col1_w,inner_col2_w)
     col1_w = col1
     tab_h = 350
     col2_w = col2
@@ -53,12 +59,12 @@ class InvoiceLayout:
                        'disabled_readonly_background_color': 'gray89', 'font': ("Helvetica", inputsize), 'size': (inputsize, 1)}
     input_fld_font: dict = {'font': ("Helvetica", inputsize), 'size': (inputsize, 1)}
 
-    input_font: dict = {'font': (f'Helvetica {fontsize}')}
+    input_font: dict = {'font': (f'Helvetica {fontsize}'),'justification': 'right', 'size': (12,1)}
     btm_btn: dict = {'size': (10, 2), 'font': f'Helvetica {fontsize} bold'}
     sum_info: dict = {'readonly': True, 'disabled_readonly_text_color': 'gray',
                       'disabled_readonly_background_color': 'gray89', 'font': ("Helvetica", inputsize), 'size': (inputsize, 1)}
     sum_info_font: dict = {'font': (f'Helvetica {fontsize}'), 'justification': 'right', 'size': (inputsize, 1)}
-    inv_label_font: dict = {'size': (15, 1), 'font': ('Helvetica 20')}
+    inv_label_font: dict = {'size': (10, 1), 'font': ('Helvetica 20'), 'justification': 'left'}
     btn_ent: dict = {'size': (element_w, element_h), 'font': 'Helvetica 11 bold', 'button_color': 'cornflower blue'}
 
     def col1(self):
@@ -67,49 +73,51 @@ class InvoiceLayout:
                     sg.Column(
                         [
                             [
-                                sg.Text('Invoice Entry', **self.inv_label_font),
-                                sg.Text('User:', **self.input_font),
+                                sg.Text('User Name:', **self.input_font),
                                 sg.Input(key='-USERID-', **self.input_fld),
                                 sg.Text('Terminal:', **self.input_font),
                                 sg.Input(key='-TERMINAL-', **self.input_fld),
                                 sg.Text('Date:', **self.input_font),
-                                sg.Input(key='-DATE-', **self.input_fld,default_text=self.today.strftime("%m/%d/%y"))
+                                sg.Input(key='-DATE-', **self.input_fld,default_text=self.today.strftime("%m/%d/%y")),
+                                sg.Text('Invoice Entry', **self.inv_label_font)
                             ]
-                            ], size=self.col1_size, vertical_alignment='top')
+                            ], size=self.col1_size, vertical_alignment='center')
                 ],
                 [
                     sg.Column(
                         [
                             [
-                                sg.Text('Invoice No', **self.input_font),
+                                sg.Text('Invoice No:', **self.input_font),
                                 sg.Input(key='-INVOICE_NO-',**self.input_fld),
                                 sg.Text('Reference No:', **self.input_font),
                                 sg.Input(key='-REFERENCE_NO-', **self.input_fld),
-                                sg.Text('Mobile No.:', **self.input_font),
-                                sg.Input(key='-MOBILE_NO-', **self.input_fld),
                                 sg.Text('Customer:', **self.input_font),
                                 sg.Input(key='-CUSTOMER-', **self.input_fld),
-                                sg.Text('UNPAID', font=("Helvetica", self.fontsize)),
-                                sg.Button('PREV\n←', size=(8, 2), font=f'Calibri {self.fontsize} bold', key='PREV',
-                                          button_color=self.pad_button_color),
-                                sg.Button('NEXT\n→', size=(8, 2), font=f'Calibri {self.fontsize} bold', key='NEXT',
-                                          button_color=self.pad_button_color)
+                                sg.Text('Mobile No:', **self.input_font),
+                                sg.Input(key='-MOBILE_NO-', **self.input_fld)
                             ]
-                        ], size=self.col1_size, vertical_alignment='top')
+                        ], size=self.col1_size, vertical_alignment='center')
                 ],
                 [
                     sg.Column(
                         [
                             [
-                                sg.Text('Barcode:', size=(8, 1), **self.input_font),
+                                sg.Text('Barcode:', **self.input_font),
                                 sg.Input(key='-BARCODE-NB-', **self.input_fld_font, enable_events = True),
                                 sg.Text('Item Name:', **self.input_font),
-                                sg.InputCombo(('8901314010322'), background_color='White' ,auto_size_text=True, font=("Helvetica", 12),
-                                              size=(20, 20), key='Item-Name' ),
+                                #sg.InputCombo(('8901314010322'), background_color='White' ,auto_size_text=True, font=("Helvetica", 12),
+                                #              size=(20, 20), key='Item-Name' ),
                                 sg.Input(key='-ITEMNAME-', **self.input_fld_font),
-                                sg.Button('Search Item', border_width=2,**self.btm_btn , key='-SEARCH-ITME-'),
+                                sg.Button('Search Item', border_width=2,size=(10,1),font='Helvetica 8 bold' ,key='-SEARCH-ITME-'),
+                                sg.Text('UNPAID', font=("Helvetica", self.fontsize)),
+                                sg.Button('PREV\n←', size=(6, 2), font=f'Calibri {self.fontsize} bold',
+                                          key='PREV',
+                                          button_color=self.pad_button_color),
+                                sg.Button('NEXT\n→', size=(6, 2), font=f'Calibri {self.fontsize} bold',
+                                          key='NEXT',
+                                          button_color=self.pad_button_color)
                             ]
-                        ], size=self.col1_size, vertical_alignment='top')
+                        ], size=self.col1_size, vertical_alignment='center')
                 ],
                 [
                     sg.Column(
@@ -122,7 +130,7 @@ class InvoiceLayout:
                                          # max_col_width=500,
                                          auto_size_columns=False,
                                          justification='right',
-                                         row_height=25,
+                                         row_height={self.row_height},
                                          alternating_row_color='lightsteelBlue1',
                                          num_rows=15,
                                          col_widths=self.tablecolumnsize,
@@ -153,7 +161,7 @@ class InvoiceLayout:
                                 sg.Button('Esc-Exit', border_width=2,**self.btm_btn, key='ESC')
 
                             ]
-                        ], size=(self.col1_w, 150), vertical_alignment='top')
+                        ], size=(self.col1_w, 150), vertical_alignment='center')
                 ]
             ]
 
@@ -243,259 +251,35 @@ class InvoiceLayout:
             [
                 sg.Column(
                     [
-                    ], size=(self.col2_w, 63), vertical_alignment='top')
+                        [
+                            sg.Image(filename='valign-pos.GIF')
+                        ]
+                    ], size=(self.col2_w, 63), vertical_alignment='center', justification='center')
             ]
         ]
-"""
-    layout_main = [
-        [
-            sg.Column(col_1_Layout, background_color='lightblue', vertical_alignment='top'),
 
-            sg.Column(col_2_Layout, background_color='lightblue', vertical_alignment='top'),
+    def layout_chg_qty(self,list_item):
+        return [
+            [sg.Text(str(list_item[2]), size=(30, 2), font=("Helvetica Bold", 12))],
+            [sg.Text('Existing Quantity:', size=(15, 1), font=("Helvetica", 11)),
+             sg.Input(key='-EXISTING-QTY-', readonly=True, background_color='gray89',
+                      disabled_readonly_text_color=InvoiceLayout.disabled_text_color, font=("Helvetica", 11),
+                      size=(15, 1))],
+            [sg.Text('New Quantity:', size=(15, 1), font=("Helvetica", 11)),
+             sg.Input(key='-NEW-QTY-', readonly=False, focus=True, background_color='white', font=("Helvetica", 11),
+                      size=(15, 1), enable_events=True)],
+            [sg.Text('')],
+            [sg.Button('F12-Ok', size=(8, 1), font='Calibri 12 bold', key='-CHG-QTY-OK-',
+                       button_color=InvoiceLayout.pad_button_color),
+             sg.Button('Esc-Exit', size=(8, 1), font='Calibri 12 bold', key='-CHG-QTY-ESC-',
+                       button_color=InvoiceLayout.pad_button_color)]
         ]
-    ]
-"""
 
-""""
-    layout_column_1 = [
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Text('Invoice Entry', size=(15, 1), font=("Helvetica", 20)),
-                        sg.Text('User:', font=("Helvetica", 12)),
-                        sg.Input(key='-USERID-', readonly=True, disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='admin',
-                                 font=("Helvetica", 12), size=(15, 1)),
-                        sg.Text('Terminal:', font=("Helvetica", 12)),
-                        sg.Input(key='-TERMINAL-', readonly=True, disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='Terminal100',
-                                 font=("Helvetica", 12), size=(15, 1)),
-                        sg.Text('Date:', font=("Helvetica", 12)),
-                        sg.Input(key='-DATE-', readonly=True, disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='16-apr-2021',
-                                 font=("Helvetica", 12), size=(15, 1)),
-                    ]
-                ], size=col1_size, vertical_alignment='top', pad=None)
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Text('Invoice No:', size=(8, 1), font=("Helvetica", 12)),
-                        sg.Input(key='-INVOICE_NO-', readonly=True, disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='SINV-0010',
-                                 font=("Helvetica", 12), size=(15, 1)),
-                        sg.Text('Reference No:', size=(8, 1), font=("Helvetica", 12)),
-                        sg.Input(key='-REFERENCE_NO-', readonly=True, disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0022',
-                                 font=("Helvetica", 12), size=(15, 1)),
-                        sg.Text('Mobile No:', size=(8, 1), font=("Helvetica", 12)),
-                        sg.Input(key='-MOBILE_NO-', readonly=True, disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0000000000',
-                                 font=("Helvetica", 12), size=(15, 1)),
-                        sg.Text('UNPAID', font=("Helvetica", 15)),
-                        sg.Button('PREV\n←', size=(8, 2), font='Calibri 12 bold', key='PREV',
-                                  button_color=pad_button_color),
-                        sg.Button('NEXT\n→', size=(8, 2), font='Calibri 12 bold', key='NEXT',
-                                  button_color=pad_button_color),
-                    ]
-                ], size=col1_size, vertical_alignment='top', pad=None)
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Text('Barcode:', size=(8, 1), font=("Helvetica", 12)),
-                        sg.Input(key='-BARCODE-NB-', background_color='White', font=("Helvetica", 12), size=(15, 1),
-                                 enable_events=True),
-                        sg.Text('Item Name:', size=(8, 1), font=("Helvetica", 12)),
-                        sg.Input(key='-ITEM_NAME-', background_color='White', font=("Helvetica", 12), size=(25, 1),
-                                 enable_events=True),
-                    ]
-                ], size=col1_size, vertical_alignment='top', pad=None)
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Table(values=list_items, key='-TABLE-', enable_events=True,
-                                 headings=column_heading,
-                                 font=(("Helvetica", 11)),
-                                 # max_col_width=500,
-                                 auto_size_columns=False,
-                                 justification='right',
-                                 row_height=25,
-                                 alternating_row_color='lightsteelBlue1',
-                                 num_rows=12,
-                                 display_row_numbers=True,
-                                 col_widths=[12, 10, 10, 10, 10, 10, 12, 10, 12]
-                                 )
-                    ]
-                ], size=(col1_w, tab_h), vertical_alignment='top', pad=None)
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Button('Help\nF1', size=(13, 2), font='Helvetica 11 bold', key='F1',
-                                  button_color=function_button_color),
-                        sg.Button('F2\nDel Item', size=(13, 2), font='Helvetica 11 bold', key='F2',
-                                  button_color=function_button_color),
-                        sg.Button('F3\nFind Item', size=(13, 2), font='Helvetica 11 bold', key='F3',
-                                  button_color=function_button_color),
-                        sg.Button('F4\nChange Quantity', size=(13, 2), font='Helvetica 11 bold', key='F4',
-                                  button_color=function_button_color),
-                        sg.Button('F5\nChange Price', size=(13, 2), font='Helvetica 11 bold', key='F5',
-                                  button_color=function_button_color),
-                        sg.Button('F6\nGet Weight', size=(13, 2), font='Helvetica 11 bold', key='F6',
-                                  button_color=function_button_color)
-                    ],
-                    [
-                        sg.Button('F7\nNew Invoice', size=(13, 2), font='Helvetica 11 bold', key='F7',
-                                  button_color=function_button_color),
-                        sg.Button('F8\nDelete Invoice', size=(13, 2), font='Helvetica 11 bold', key='F8',
-                                  button_color=function_button_color),
-                        sg.Button('F9\nFind Customer', size=(13, 2), font='Helvetica 11 bold', key='F9',
-                                  button_color=function_button_color),
-                        sg.Button('F10\nList Invoices', size=(13, 2), font='Helvetica 11 bold', key='F10',
-                                  button_color=function_button_color),
-                        sg.Button('F11\nPrint Invoice', size=(13, 2), font='Helvetica 11 bold', key='F11',
-                                  button_color=function_button_color),
-                        sg.Button('F12\nPayment', size=(13, 2), font='Helvetica 11 bold', key='F12',
-                                  button_color=function_button_color),
-                        sg.Button('Esc\nExit', size=(13, 2), font='Helvetica 11 bold', key='ESC',
-                                  button_color=function_button_color)
-                    ]
-                ], size=(col1_w, 150), background_color='gray80', vertical_alignment='top', pad=None)
-        ]
-    ]
 
-    layout_column_2 = [
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Image(filename='company-logo.GIF')
-                    ]
-                ], size=(col2_w, 90), vertical_alignment='top', pad=None)
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Text('Line Items:', font=("Helvetica", 11), justification="right", size=(10, 1)),
-                        sg.Input(key='-LINE-ITEMS-', readonly=True, justification="right",
-                                 disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0', font=("Helvetica", 11),
-                                 size=(12, 1))
-                    ],
-                    [
-                        sg.Text('Total Qty:', font=("Helvetica", 11), justification="right", size=(10, 1)),
-                        sg.Input(key='-TOTAL-QTY-', readonly=True, justification="right",
-                                 disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0.00',
-                                 font=("Helvetica", 11), size=(12, 1))
-                    ],
-                    [
-                        sg.Text('Total Price:', font=("Helvetica", 11), justification="right", size=(10, 1)),
-                        sg.Input(key='-TOTAL-PRICE-', readonly=True, justification="right",
-                                 disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0.00',
-                                 font=("Helvetica", 11), size=(12, 1)),
-                    ],
-                    [
-                        sg.Text('Tax:', font=("Helvetica", 11), justification="right", size=(10, 1)),
-                        sg.Input(key='-TOTAL-TAX-', readonly=True, justification="right",
-                                 disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0.00',
-                                 font=("Helvetica", 11), size=(12, 1)),
-                    ],
-                    [
-                        sg.Text('Net Price:', font=("Helvetica", 11), justification="right", size=(10, 1)),
-                        sg.Input(key='-NET-PRICE-', readonly=True, justification="right",
-                                 disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0.00',
-                                 font=("Helvetica", 11), size=(12, 1)),
-                    ],
-                    [
-                        sg.Text('Discount:', font=("Helvetica", 11), justification="right", size=(10, 1)),
-                        sg.Input(key='-DISCOUNT-', readonly=True, justification="right",
-                                 disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0.00',
-                                 font=("Helvetica", 11), size=(12, 1)),
-                    ],
-                    [
-                        sg.Text('Invoice Amt:', font=("Helvetica", 11), justification="right", size=(10, 1)),
-                        sg.Input(key='-INVOICE-AMT-', readonly=True, justification="right",
-                                 disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0.00',
-                                 font=("Helvetica", 11), size=(12, 1)),
-                    ],
-                    [
-                        sg.Text('Paid Amt:', font=("Helvetica", 11), justification="right", size=(10, 1)),
-                        sg.Input(key='-PAID-AMT-', readonly=True, justification="right",
-                                 disabled_readonly_text_color=disabled_text_color,
-                                 disabled_readonly_background_color='gray89', default_text='0.00',
-                                 font=("Helvetica", 11), size=(12, 1))
-                    ]
-
-                ], size=(col2_w, 220), vertical_alignment='top', pad=None)
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Button('↑', size=(4, 2), font='Calibri 12 bold', key='UP', button_color=pad_button_color),
-                        sg.Button('7', size=(4, 2), font='Calibri 12 bold', key='T7', button_color=pad_button_color),
-                        sg.Button('8', size=(4, 2), font='Calibri 12 bold', key='T8', button_color=pad_button_color),
-                        sg.Button('9', size=(4, 2), font='Calibri 12 bold', key='T9', button_color=pad_button_color),
-
-                    ],
-                    [
-                        sg.Button('↓', size=(4, 2), font='Calibri 12 bold', key='DOWN', button_color=pad_button_color),
-                        sg.Button('4', size=(4, 2), font='Calibri 12 bold', key='T4', button_color=pad_button_color),
-                        sg.Button('5', size=(4, 2), font='Calibri 12 bold', key='T5', button_color=pad_button_color),
-                        sg.Button('6', size=(4, 2), font='Calibri 12 bold', key='T6', button_color=pad_button_color),
-                    ],
-                    [
-                        sg.Button('→', size=(4, 2), font='Calibri 12 bold', key='RIGHT', button_color=pad_button_color),
-                        sg.Button('1', size=(4, 2), font='Calibri 12 bold', key='T1', button_color=pad_button_color),
-                        sg.Button('2', size=(4, 2), font='Calibri 12 bold', key='T2', button_color=pad_button_color),
-                        sg.Button('3', size=(4, 2), font='Calibri 12 bold', key='T3', button_color=pad_button_color),
-
-                    ],
-                    [
-                        sg.Button('←', size=(4, 2), font='Calibri 12 bold', key='LEFT', button_color=pad_button_color),
-                        sg.Button('0', size=(4, 2), font='Calibri 12 bold', key='T0', button_color=pad_button_color),
-                        sg.Button('ENT', size=(10, 2), font='Calibri 12 bold', key='ENTER',
-                                  button_color=pad_button_color),
-                    ],
-                    [
-                        sg.Button('<<', size=(4, 2), font='Calibri 12 bold', key='BACK-SPACE',
-                                  button_color=pad_button_color),
-                        sg.Button('.', size=(4, 2), font='Calibri 12 bold', key='FULL-STOP',
-                                  button_color=pad_button_color),
-                        sg.Button('TAB', size=(10, 2), font='Calibri 12 bold', key='TAB',
-                                  button_color=pad_button_color),
-                    ],
-                ], size=(col2_w, 290), background_color='gray80', vertical_alignment='top', pad=None)
-        ],
-        [
-            sg.Column(
-                [
-                    [
-                        sg.Image(filename='valign-pos.gif')
-                    ]
-                ], size=(col2_w, 63), vertical_alignment='top', pad=None)
-        ]
-    ]
-
-    layout_main = [
-        [
-            sg.Column(layout_column_1, background_color='gray80', vertical_alignment='top', pad=None),
-
-            sg.Column(layout_column_2, background_color='gray80', vertical_alignment='top', pad=None),
-        ]
-    ]
-"""
+    def search_items_layout(self,itemNames):
+        return [
+                    [sg.Text('Search Item:')],
+                    [sg.In(key='_INPUT_', size=(100, 1))],
+                    [sg.Listbox(itemNames, size=(100, 10), key='_COMBO_', change_submits=True)],
+                    [sg.Button('F12-Ok'), sg.Button('Esc-Exit')]
+                ]

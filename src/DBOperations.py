@@ -1,4 +1,5 @@
 import mariadb
+import sys
 
 class DBOperations:
 
@@ -84,6 +85,13 @@ class DBOperations:
         userDetail = db_pos_cur.fetchone()
         print(userDetail)
         return userDetail
+
+    def getItemDetails(self,barcode):
+        query = "SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = '" + barcode + "'"
+        db_pos_cur = self.db_pos_conn.cursor()
+        db_pos_cur.execute(query)
+        db_item_row = db_pos_cur.fetchone()
+        return  db_item_row
 
     def closeDBCon(self):
         self.db_pos_conn.close()
