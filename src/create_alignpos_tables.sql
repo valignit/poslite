@@ -63,20 +63,21 @@ CREATE TABLE `tabInvoice` (
   `owner` varchar(140) DEFAULT NULL,
   PRIMARY KEY (`name`),
   KEY `FK_tabInvoice_tabCustomer` (`customer`),
-  CONSTRAINT `FK_tabInvoice_tabCustomer` FOREIGN KEY (`customer`) REFERENCES `tabCustomer` (`name`)
+  CONSTRAINT `FK_tabInvoice_tabCustomer` FOREIGN KEY (`customer`) REFERENCES `tabCustomer` (`mobile_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `tabInvoice Item` (
+  `name` varchar(140) NOT NULL,
   `parent` varchar(140) NOT NULL,
   `item_code` varchar(140) NOT NULL,
   `qty` decimal(18,6) DEFAULT NULL,
   `standard_selling_price` decimal(18,6) DEFAULT NULL,
   `applied_selling_price` decimal(18,6) DEFAULT NULL,
   `selling_amount` decimal(18,6) DEFAULT NULL,
-  `cgst_tax_amount` decimal(18,6) DEFAULT NULL,
-  `sgst_tax_amount` decimal(18,6) DEFAULT NULL,
+  `cgst_tax_rate` decimal(18,6) DEFAULT NULL,
+  `sgst_tax_rate` decimal(18,6) DEFAULT NULL,
   `approved_by` varchar(140) DEFAULT NULL,    
-   PRIMARY KEY (`parent`,`item_code`),
+   PRIMARY KEY (`name`),
   KEY `FK_tabInvoice Item_tabItem` (`item_code`),
   CONSTRAINT `FK_tabInvoice Item_tabItem` FOREIGN KEY (`item_code`) REFERENCES `tabItem` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
@@ -111,8 +112,8 @@ CREATE TABLE `tabEstimate Item` (
   `standard_selling_price` decimal(18,6) DEFAULT NULL,
   `applied_selling_price` decimal(18,6) DEFAULT NULL,
   `selling_amount` decimal(18,6) DEFAULT NULL,
-  `cgst_tax_amount` decimal(18,6) DEFAULT NULL,
-  `sgst_tax_amount` decimal(18,6) DEFAULT NULL,
+  `cgst_tax_rate` decimal(18,6) DEFAULT NULL,
+  `sgst_tax_rate` decimal(18,6) DEFAULT NULL,
    PRIMARY KEY (`parent`,`item_code`),
   KEY `FK_tabEstimate Item_tabItem` (`item_code`),
   CONSTRAINT `FK_tabEstimate Item_tabItem` FOREIGN KEY (`item_code`) REFERENCES `tabItem` (`name`)
@@ -125,10 +126,21 @@ CREATE TABLE `tabUser` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `tabSettings` (
-  `invoice_number_prefix` varchar(140) DEFAULT 'SINV-',
-  `last_invoice_number` INT DEFAULT NULL,
-  `last_reference_number` INT DEFAULT NULL,
-  `estimate_number_prefix` varchar(140) DEFAULT 'EST-',
-  `last_estimate_number` INT DEFAULT NULL,
-  `conversion_factor` decimal(18,6) DEFAULT NULL  
+  `conversion_factor` decimal(18,6) DEFAULT 0.100  
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `tabSequence` (
+    `name` varchar(100) NOT NULL,
+    `increment` int(11) NOT NULL DEFAULT 1,
+    `min_value` int(11) NOT NULL DEFAULT 1,
+    `max_value` int(11) NOT NULL DEFAULT 99999999,
+    `cur_value` int(11) DEFAULT 1,
+    `cycle` boolean NOT NULL DEFAULT FALSE,
+	`value_size` int(11) NOT NULL DEFAULT 5,
+    `prefix` varchar(100) DEFAULT NULL,
+    PRIMARY KEY (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+insert into tabSettings (conversion_factor) values (0.100);
+insert into tabSequence (name) values ('REFERENCE_NUMBER');
+insert into tabSequence (name, prefix) values ('INVOICE_NUMBER', 'SINV-');
