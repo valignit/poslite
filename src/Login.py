@@ -276,7 +276,7 @@ def invoiceEntry():
         if event in ('F2:113', 'F2') and prev_event == '-TABLE-':
             sel_row = values['-TABLE-'][0]
             print('Selected ', sel_row)
-            list_items = window.Element('-TABLE-').get()
+            list_items = invWindow.Element('-TABLE-').get()
             print('Values ', list_items[sel_row])
             list_items.pop(sel_row)
             print('Length ', len(list_items))
