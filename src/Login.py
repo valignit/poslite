@@ -255,8 +255,8 @@ def invoiceEntry():
             invWindow.Element('-BARCODE-NB-').SetFocus()
 
         if event in ('BEGN'):
-            invfun.save_invoice()
-            invfun.goto_first_invoice()
+            invfun.save_invoice(invWindow)
+            invfun.goto_first_invoice(invWindow)
             invWindow.Element('-BARCODE-NB-').SetFocus()
 
         if event in ('Prior:33', 'PREV'):
