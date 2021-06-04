@@ -36,7 +36,7 @@ CREATE TABLE `tabCustomer` (
   `modified` datetime(6) DEFAULT NULL,
   `modified_by` varchar(140) DEFAULT NULL,
   `owner` varchar(140) DEFAULT NULL,
-  PRIMARY KEY (`name`)
+  PRIMARY KEY (`mobile_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE `tabInvoice` (
