@@ -108,7 +108,7 @@ class InvoiceFunctions:
             return
         db_pos_sql_stmt = "SELECT nextval('REFERENCE_NUMBER')"
         try:
-            self.db.query(db_pos_sql_stmt)
+            db_item_row = self.db.query_one(db_pos_sql_stmt)
             #db_pos_cur.execute(db_pos_sql_stmt)
         except mariadb.Error as db_err:
             print(f"POS database error: {db_err}")
@@ -116,12 +116,12 @@ class InvoiceFunctions:
             sys.exit(1)
         print('ref no')
 
-        db_item_row = self.db.fetchone()
+        #db_item_row = self.db.fetchone()
         if db_item_row is None:
             print('Sequence not found')
         else:
             reference_number = db_item_row[0]
-        print(reference_number)
+        print(reference_number , db_item_row[0])
         total_amount = winObj.Element('-TOTAL-PRICE-').get()
         net_amount = winObj.Element('-NET-PRICE-').get()
         invoice_amount = winObj.Element('-INVOICE-AMT-').get()

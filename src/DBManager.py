@@ -72,6 +72,10 @@ class DBManager:
         self.cursor.execute(sql, params or ())
         return self.fetchall()
 
-    def query(self, sql):
+    def query_all(self, sql):
         self.cursor.execute(sql)
         return self.fetchall()
+
+    def query_one(self, sql):
+        self.cursor.execute(sql)
+        return self.fetchone()
