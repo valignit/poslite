@@ -76,68 +76,6 @@ def open_popup_chg_qty(row_item, list_item, winObj):
     popup_chg_qty.close()
 
 
-def sum_item_list(winObj):
-    line_items = 0
-    total_qty = 0.0
-    total_price = 0.0
-    total_tax = 0.0
-    total_net_price = 0.0
-
-    for row_item in InvoiceLayout.list_items:
-        line_items += 1
-        total_qty += float(row_item[4])
-        total_price += float(row_item[6])
-        total_tax += float(row_item[8])
-        total_net_price += float(row_item[9])
-
-    winObj.Element('-LINE-ITEMS-').update(value=str(line_items))
-    winObj.Element('-TOTAL-QTY-').update(value="{:.2f}".format(total_qty))
-    winObj.Element('-TOTAL-PRICE-').update(value="{:.2f}".format(total_price))
-    winObj.Element('-TOTAL-TAX-').update(value="{:.2f}".format(total_tax))
-    winObj.Element('-NET-PRICE-').update(value="{:.2f}".format(total_net_price))
-    winObj.Element('-INVOICE-AMT-').update(value="{:.2f}".format(total_net_price))
-
-
-def proc_barcode(barcode, winObj):
-    if len(barcode) > 12:
-        print('barcode=', barcode)
-        # db_pos_cur.execute("SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = '" + barcode + "'")
-        # db_item_row = db_pos_cur.fetchone()
-        db_item_row = dbOperation.getItemDetails(barcode)
-        if db_item_row is None:
-            print('Item not found')
-        else:
-            item_code = db_item_row[0]
-            item_name = db_item_row[1]
-            uom = db_item_row[2]
-            qty = 1
-            selling_price = db_item_row[3]
-            cgst_tax_rate = db_item_row[4]
-            sgst_tax_rate = db_item_row[5]
-            print(item_name)
-            row_item = []
-            row_item.append(item_code)
-            row_item.append(barcode)
-            row_item.append(item_name)
-            row_item.append(uom)
-            row_item.append(qty)
-            row_item.append("{:.2f}".format(selling_price))
-            selling_amount = float(qty) * float(selling_price)
-            row_item.append("{:.2f}".format(selling_amount))
-            tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
-            row_item.append(tax_rate)
-            tax_amount = selling_amount * tax_rate / 100
-            row_item.append("{:.2f}".format(tax_amount))
-            net_price = selling_amount + tax_amount
-            row_item.append("{:.2f}".format(net_price))
-            InvoiceLayout.list_items.append(row_item)
-            print(InvoiceLayout.list_items)
-            winObj.Element('-TABLE-').update(values=InvoiceLayout.list_items)
-            winObj.Element('-BARCODE-NB-').update(value='')
-            winObj.Element('-ITEMNAME-').update(value='')
-            winObj.Element('-BARCODE-NB-').set_focus()
-            sum_item_list(winObj)
-
 
 def predict_text(searchItem, listItem):
     print('recied= ', searchItem, listItem)
@@ -209,6 +147,9 @@ def createInvoiceWin():
 
 
 def invoiceEntry():
+    from InvoiceFunctions import InvoiceFunctions
+
+    invfun = InvoiceFunctions()
     invWindow = createInvoiceWin()
     invWindow.force_focus()
     invWindow['-BARCODE-NB-'].set_focus()
@@ -263,7 +204,7 @@ def invoiceEntry():
             invWindow.Element('-BARCODE-NB-').update(value=inp_val)
 
         if event in ('\t', 'TAB') and prev_event == '-BARCODE-NB-':
-            proc_barcode(str(values['-BARCODE-NB-']), invWindow)
+            invfun.proc_barcode(str(values['-BARCODE-NB-']), invWindow)
 
         if event in ('\t', 'TAB') and prev_event == '-ITEM_NAME-':
             invWindow['-TABLE-'].Widget.config(takefocus=1)
@@ -288,7 +229,7 @@ def invoiceEntry():
             if len(list_items) == 0:
                 invWindow.Element('-TABLE-').update(values=[])
                 invWindow.Element('-BARCODE-NB-').SetFocus()
-            sum_item_list(invWindow)
+            invfun.sum_item_list(invWindow)
 
         if event in ('F4:115', 'F4') and prev_event == '-TABLE-':
             sel_row = values['-TABLE-'][0]
@@ -301,10 +242,40 @@ def invoiceEntry():
             invWindow['-TABLE-'].Widget.selection_set(table_row)  # move selection
             invWindow['-TABLE-'].Widget.focus(table_row)  # move focus
             invWindow['-TABLE-'].Widget.see(table_row)  # scroll to show i
-            sum_item_list(invWindow)
+            invfun.sum_item_list(invWindow)
+
+        if event in ('F7:118', 'F7'):
+            invfun.save_invoice(invWindow)
+            invfun.clear_invoice(invWindow)
+            invWindow.Element('-BARCODE-NB-').SetFocus()
+
+        if event in ('F8:119', 'F8'):
+            invfun.delete_invoice(invWindow)
+            invfun.clear_invoice(invWindow)
+            invWindow.Element('-BARCODE-NB-').SetFocus()
+
+        if event in ('BEGN'):
+            invfun.save_invoice()
+            invfun.goto_first_invoice()
+            invWindow.Element('-BARCODE-NB-').SetFocus()
+
+        if event in ('Prior:33', 'PREV'):
+            invfun.save_invoice(invWindow)
+            invfun.goto_previous_invoice(invWindow)
+            invWindow.Element('-BARCODE-NB-').SetFocus()
+
+        if event in ('Next:33', 'NEXT'):
+            invfun.save_invoice(invWindow)
+            invfun.goto_next_invoice(invWindow)
+            invWindow.Element('-BARCODE-NB-').SetFocus()
+
+        if event in ('END'):
+            invfun.save_invoice(invWindow)
+            invfun.goto_last_invoice(invWindow)
+            invWindow.Element('-BARCODE-NB-').SetFocus()
 
         if event in ('1', '2', '3', '4', '5', '6', '7', '8', '9', '0') and prev_event == '-BARCODE-NB-':
-            proc_barcode(str(values['-BARCODE-NB-']),invWindow)
+            invfun.proc_barcode(str(values['-BARCODE-NB-']),invWindow)
 
         if event not in ('Up:38', 'Down:40', 'UP', 'DOWN', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'):
             prev_event = event
@@ -313,7 +284,7 @@ def invoiceEntry():
             selected_row = values['-TABLE-'][0]
             print("select row ", selected_row)
 
-        if event == "-SEARCH-ITME-":
+        if event == "-SEARCH-ITME-" or event in ('F3:114', 'F3'):
             print('search item')
             searchItemWin(invWindow)
     if navigateWin == 1:
