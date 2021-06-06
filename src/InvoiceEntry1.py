@@ -7,52 +7,79 @@ import platform
 from pynput.keyboard import Key, Controller
 
 
+
+def isInteger(inp):
+    try:
+        val = int(inp)
+        return True
+    except ValueError:
+        return False
+
+
+def isFloat(inp):
+    try:
+        val = float(inp)
+        return True
+    except ValueError:
+        return False
+
+            
 ######
 # Process Barcode field input
 def proc_barcode(barcode):
-    if len(barcode) > 12:
-        db_pos_sql_stmt = "SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = %s"
-        db_pos_sql_data = (barcode,)
-        try:
-            db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
-        except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")       
-            db_pos_conn.close()
-            sys.exit(1)
-            
-        db_item_row = db_pos_cur.fetchone()
-        if db_item_row is None:
-            print('Item not found')
-        else:
-            item_code = db_item_row[0]
-            item_name = db_item_row[1]
-            uom = db_item_row[2]
-            qty = 1
-            selling_price = db_item_row[3]
-            cgst_tax_rate = db_item_row[4]
-            sgst_tax_rate = db_item_row[5]
-            row_item = []
-            row_item.append(item_code)
-            row_item.append(barcode)
-            row_item.append(item_name)
-            row_item.append(uom)
-            row_item.append(qty)            
-            row_item.append("{:.2f}".format(selling_price))
-            selling_amount = float(qty) * float(selling_price)
-            row_item.append("{:.2f}".format(selling_amount))                                    
-            tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
-            row_item.append(tax_rate)                        
-            tax_amount = selling_amount * tax_rate / 100
-            row_item.append("{:.2f}".format(tax_amount))
-            net_price = selling_amount + tax_amount
-            row_item.append("{:.2f}".format(net_price))
-            row_item.append(cgst_tax_rate)                        
-            row_item.append(sgst_tax_rate)      
-            list_items.append(row_item)
-            window.Element('-TABLE-').update(values=list_items)
-            window.Element('-BARCODE-NB-').update(value='')
-            window.Element('-BARCODE-NB-').set_focus()
-            sum_item_list()
+    if not len(barcode) == 13:
+        return
+    
+    if not isInteger(barcode):
+        window.Element('-BARCODE-NB-').update(value='')
+        window.Element('-BARCODE-NB-').set_focus()    
+        return
+    
+    db_pos_sql_stmt = "SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = %s"
+    db_pos_sql_data = (barcode,)
+    try:
+        db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
+    except mariadb.Error as db_err:
+        print(f"POS database error - 001: {db_err}")       
+        db_pos_conn.close()
+        sys.exit(1)
+        
+    db_item_row = db_pos_cur.fetchone()
+    if db_item_row is None:
+        sg.popup('Item not found',keep_on_top = True)
+        window.Element('-BARCODE-NB-').update(value='')
+        window.Element('-BARCODE-NB-').set_focus()    
+        return
+
+    item_code = db_item_row[0]
+    item_name = db_item_row[1]
+    uom = db_item_row[2]
+    qty = 1
+    selling_price = db_item_row[3]
+    cgst_tax_rate = db_item_row[4]
+    sgst_tax_rate = db_item_row[5]
+    row_item = []
+    row_item.append(item_code)
+    row_item.append(barcode)
+    row_item.append(item_name)
+    row_item.append(uom)
+    row_item.append("{:.2f}".format(qty))           
+    row_item.append("{:.2f}".format(selling_price))
+    selling_amount = float(qty) * float(selling_price)
+    row_item.append("{:.2f}".format(selling_amount))                                    
+    tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
+    row_item.append(tax_rate)                        
+    tax_amount = selling_amount * tax_rate / 100
+    row_item.append("{:.2f}".format(tax_amount))
+    net_price = selling_amount + tax_amount
+    row_item.append("{:.2f}".format(net_price))
+    row_item.append(cgst_tax_rate)                        
+    row_item.append(sgst_tax_rate)      
+    list_items.append(row_item)
+    window.Element('-TABLE-').update(values=list_items)
+    window.Element('-BARCODE-NB-').update(value='')
+    window.Element('-BARCODE-NB-').set_focus()
+    sum_item_list()
 
 
 ######
@@ -87,20 +114,20 @@ def sum_item_list():
 
 ######
 # Popup window for Change Quantity
-def open_popup_chg_qty(row_item, list_item):
+def open_popup_chg_qty(row_item):
     layout_chg_qty = [
-        [sg.Text(str(list_item[2]), size=(30,2),  font=("Helvetica Bold", 12))],
+        [sg.Text(str(list_items[row_item][2]), size=(30,2),  font=("Helvetica Bold", 12))],
         [sg.Text('Existing Quantity:', size=(15,1),  font=("Helvetica", 11)),     
          sg.Input(key='-EXISTING-QTY-',readonly=True, background_color='gray89', disabled_readonly_text_color=disabled_text_color,font=("Helvetica", 11),size=(15,1))],
         [sg.Text('New Quantity:', size=(15,1),  font=("Helvetica", 11)),             
          sg.Input(key='-NEW-QTY-',readonly=False, focus=True, background_color='white',font=("Helvetica", 11),size=(15,1), enable_events=True)],
         [sg.Text('')],
-        [sg.Button('F12-Ok', size=(8, 1), font='Calibri 12 bold', key='-CHG-QTY-OK-', button_color = pad_button_color),
-         sg.Button('Esc-Exit', size=(8, 1), font='Calibri 12 bold', key='-CHG-QTY-ESC-', button_color = pad_button_color)]           
+        [sg.Button('Ok-F12', size=(8, 1), font='Calibri 12 bold', key='-CHG-QTY-OK-', button_color = pad_button_color),
+         sg.Button('Exit-Esc', size=(8, 1), font='Calibri 12 bold', key='-CHG-QTY-ESC-', button_color = pad_button_color)]           
     ]   
-
     popup_chg_qty = sg.Window("Change Quantity", layout_chg_qty, location=(300,250), size=(350,180), modal=True, finalize=True,return_keyboard_events=True)
-    popup_chg_qty.Element('-EXISTING-QTY-').update(value=str(list_item[4]))
+    popup_chg_qty.Element('-EXISTING-QTY-').update(value=str(list_items[row_item][4]))
+    popup_chg_qty.Element('-NEW-QTY-').update(value='')
     
     while True:
         event, values = popup_chg_qty.read()
@@ -108,27 +135,266 @@ def open_popup_chg_qty(row_item, list_item):
         
         if event in ("Exit", '-CHG-QTY-ESC-', 'Escape:27') or event == sg.WIN_CLOSED:
             break        
-        if event == "-CHG-QTY-OK-" or event == "F12:123": 
-            applied_qty = popup_chg_qty.Element('-NEW-QTY-').get()
-            if (applied_qty.isnumeric() or applied_qty.replace('.', '', 1).isdigit()):
-                tax_rate = list_items[row_item][7]
-                selling_price = list_items[row_item][6]
-                selling_amount = float(applied_qty) * float(selling_price)
-                tax_amount = selling_amount * float(tax_rate) / 100
-                net_price = selling_amount + tax_amount            
-                list_items[row_item][4] = applied_qty
-                list_items[row_item][6] = "{:.2f}".format(selling_amount)
-                list_items[row_item][8] = "{:.2f}".format(tax_amount)
-                list_items[row_item][9] = "{:.2f}".format(net_price)
-                window.Element('-TABLE-').update(values=list_items, select_rows=[row_item])
-                #sum_item_list()
-                break   
+        if event == "-CHG-QTY-OK-" or event == "F12:123":
+            event_chg_qty_ok_clicked(popup_chg_qty, row_item)
+            break
+    
     popup_chg_qty.close()   
+
+
+def event_chg_qty_ok_clicked(popup_chg_qty, row_item):
+    applied_qty = 0
+    existing_qty = popup_chg_qty.Element('-EXISTING-QTY-').get()
+    applied_qty = popup_chg_qty.Element('-NEW-QTY-').get()
+    if (applied_qty.isnumeric() or applied_qty.replace('.', '', 1).isdigit()):
+        if float(applied_qty) == float(existing_qty):
+            sg.popup('Quantity cannot be the same',keep_on_top = True)
+            popup_chg_qty.Element('-NEW-QTY-').update(value='')
+        else:
+            tax_rate = list_items[row_item][7]
+            selling_price = list_items[row_item][5]
+            selling_amount = float(applied_qty) * float(selling_price)
+            tax_amount = selling_amount * float(tax_rate) / 100
+            net_price = selling_amount + tax_amount  
+            print('applied_qty:',applied_qty)
+            list_items[row_item][4] = "{:.2f}".format(float(applied_qty))
+            list_items[row_item][6] = "{:.2f}".format(selling_amount)
+            list_items[row_item][8] = "{:.2f}".format(tax_amount)
+            list_items[row_item][9] = "{:.2f}".format(net_price)
+            print('after:',row_item,':',str(list_items))
+            window.Element('-TABLE-').update(values=list_items, select_rows=[row_item])
+
+
+######
+# Popup window for Payment
+def open_popup_payment():
+    layout_payment = [
+        [sg.Text('Mobile No.:', size=(8,1),  font=("Helvetica", 11)),             
+         sg.Input(key='-MOBILE-NO-',readonly=False, focus=True, background_color='white',font=("Helvetica", 11),size=(12,1), enable_events=True),
+         sg.Input(key='-CUST-NAME-',readonly=True, focus=False, background_color='gray89', disabled_readonly_text_color=disabled_text_color,font=("Helvetica", 11),size=(25,1), enable_events=True)],
+        [sg.Text('', size=(8,1))],             
+
+        [sg.Column([
+            [sg.Text('Net Amount:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-NET-AMT-',readonly=True, focus=False, background_color='gray89', disabled_readonly_text_color=disabled_text_color, font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text('Rounding Adjust:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-ROUND-ADJ-',readonly=True, focus=True, background_color='gray89', disabled_readonly_text_color=disabled_text_color, font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text('Rounded Amt:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-ROUNDED-AMT-',readonly=True, focus=True, background_color='gray89', disabled_readonly_text_color=disabled_text_color, font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text('Discount:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-DISCOUNT-AMT-',readonly=False, focus=True, background_color='white',font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text('Redeem Pts:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-REDEEM-PT-',readonly=False, focus=True, background_color='white',font=("Helvetica", 11),justification="right",size=(4,1), enable_events=True),
+             sg.Text('Tot:',font=("Helvetica", 11), size=(3,1)),            
+             sg.Input(key='-AVAILABLE-PT-',readonly=True, focus=True, background_color='gray89', disabled_readonly_text_color=disabled_text_color, font=("Helvetica", 11),justification="right",size=(4,1), enable_events=True)],             
+            ], vertical_alignment='Top'),
+        sg.Column([
+            [sg.Text('Invoice Amount:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-INVOICE-AMT-',readonly=True, focus=True, background_color='gray89', disabled_readonly_text_color=disabled_text_color, font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text('Cash Payment:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-CASH-PAYMENT-',readonly=False, focus=True, background_color='white',font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True),
+             sg.Text('Reference:', size=(10,1), font=("Helvetica", 11))],
+            [sg.Text('Card Payment:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-CARD-PAYMENT-',readonly=False, focus=True, background_color='white',font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True),
+             sg.Input(key='-CARD-REF-', focus=True, background_color='white', font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text('Credit Note:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-CREDIT-NOTE-', focus=True, background_color='white', font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True),
+             sg.Input(key='-CREDIT-NOTE-REF-',readonly=False, focus=True, background_color='white',font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text('Redeem Amount:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-REDEEM-AMT-',readonly=False, focus=False, background_color='gray89', disabled_readonly_text_color=disabled_text_color,font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text('Total Payment:', size=(12,1),  font=("Helvetica", 11)),             
+             sg.Input(key='-TOTAL-PAYMENT-',readonly=False, focus=False, background_color='gray89', disabled_readonly_text_color=disabled_text_color,font=("Helvetica", 11),justification="right",size=(15,1), enable_events=True)],
+            [sg.Text(' Balance:', size=(10,1),  font=("Helvetica bold", 14)),             
+             sg.Input(key='-BALANCE-AMT-',readonly=False, focus=False, background_color='gray89', disabled_readonly_text_color=disabled_text_color,font=("Helvetica bold", 14),justification="right",size=(11,1), enable_events=True),
+             sg.Button('Paid-F2', size=(7, 1), font='Calibri 12 bold', key='-PAID-', button_color = 'orange')], 
+            ], vertical_alignment='Top'),
+        ],
+        [sg.Text('', size=(8,1))],
+        [sg.Button('OK\nF12', size=(8, 2), font='Calibri 12 bold', key='-PAYMENT-OK-', button_color = pad_button_color),
+         sg.Button('Exit\nEsc', size=(8, 2), font='Calibri 12 bold', key='-PAYMENT-ESC-', button_color = pad_button_color)]
+    ]   
+
+    popup_payment = sg.Window("Payment", layout_payment, location=(300,250), size=(700,350), modal=True, finalize=True,return_keyboard_events=True, keep_on_top = True)
+
+    initialize_payment_screen(popup_payment)
+    
+    prev_event = ''
+    while True:
+        event, values = popup_payment.read()
+        print('eventc=', event)
+        if event in ('\t', 'TAB') and prev_event == '-DISCOUNT-AMT-':
+            event_discount_entered(popup_payment)
+            
+        if event in ('\t', 'TAB') and prev_event == '-MOBILE-NO-':
+            event_mobile_number_entered(popup_payment)       
+                
+        if event in ('\t', 'TAB') and prev_event == '-CASH-PAYMENT-':
+            event_cash_card_payment_entered(popup_payment)       
+                
+        if event in ('\t', 'TAB') and prev_event == '-CARD-PAYMENT-':
+            event_cash_card_payment_entered(popup_payment)       
+                
+        if event in ("Exit", '-PAYMENT-ESC-', 'Escape:27') or event == sg.WIN_CLOSED:
+            break        
+        
+        if event == "-PAYMENT-OK-" or event == "F12:123":
+            event_payment_ok_clicked(popup_payment)
+            break
+            
+        if event == "-PAID-" or event == "F12:123":
+            event_paid_clicked(popup_payment)
+
+        if event not in ('Up:38', 'Down:40', 'UP', 'DOWN', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'):
+            prev_event = event     
+            
+    popup_payment.close()   
+
+
+def initialize_payment_screen(popup_payment):
+    popup_payment['-CUST-NAME-'].Widget.config(takefocus=0)
+    popup_payment['-NET-AMT-'].Widget.config(takefocus=0)
+    popup_payment['-INVOICE-AMT-'].Widget.config(takefocus=0)
+    popup_payment['-TOTAL-PAYMENT-'].Widget.config(takefocus=0)
+    popup_payment['-BALANCE-AMT-'].Widget.config(takefocus=0)
+    popup_payment['-AVAILABLE-PT-'].Widget.config(takefocus=0)
+    popup_payment['-REDEEM-AMT-'].Widget.config(takefocus=0)
+    popup_payment['-ROUND-ADJ-'].Widget.config(takefocus=0)
+    popup_payment['-ROUNDED-AMT-'].Widget.config(takefocus=0)
+
+    net_amt = float(window.Element('-NET-PRICE-').get())
+    rounding_adj = net_amt - round(net_amt, 0)
+    rounded_amt = net_amt - rounding_adj
+    popup_payment.Element('-NET-AMT-').update(value="{:.2f}".format(net_amt))
+    popup_payment.Element('-ROUND-ADJ-').update(value="{:.2f}".format(rounding_adj))
+    popup_payment.Element('-ROUNDED-AMT-').update(value="{:.2f}".format(rounded_amt))
+    
+    popup_payment.Element('-DISCOUNT-AMT-').update(value="{:.2f}".format(0))    
+    popup_payment.Element('-INVOICE-AMT-').update(value="{:.2f}".format(rounded_amt))
+    popup_payment.Element('-CASH-PAYMENT-').update(value="{:.2f}".format(rounded_amt))
+    popup_payment.Element('-CARD-PAYMENT-').update(value="{:.2f}".format(0))
+    popup_payment.Element('-TOTAL-PAYMENT-').update(value="{:.2f}".format(0))
+    popup_payment.Element('-BALANCE-AMT-').update(value="{:.2f}".format(0))
+    popup_payment.Element('-MOBILE-NO-').SetFocus() 
+    popup_payment.Element('-MOBILE-NO-').update(value='0000000000')
+    
+    
+def event_discount_entered(popup_payment):
+    rounded_amt = popup_payment.Element('-ROUNDED-AMT-').get()
+    discount_amt = popup_payment.Element('-DISCOUNT-AMT-').get()
+    invoice_amt = float(rounded_amt) - float(discount_amt)
+    cash_payment_amt = invoice_amt
+    total_payment = invoice_amt
+    popup_payment.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amt)) 
+    popup_payment.Element('-CASH-PAYMENT-').update(value= "{:.2f}".format(cash_payment_amt))
+    popup_payment.Element('-TOTAL-PAYMENT-').update(value= "{:.2f}".format(total_payment))   
+    
+
+
+def event_cash_card_payment_entered(popup_payment):
+    retval = 0
+    retval = popup_payment.Element('-INVOICE-AMT-').get()
+    retval = '0.00' if retval == '' else retval
+    invoice_amt = float(retval)
+    retval = popup_payment.Element('-CASH-PAYMENT-').get()
+    retval = '0.00' if retval == '' else retval
+    cash_payment_amt = float(retval)
+    retval = popup_payment.Element('-CARD-PAYMENT-').get()
+    retval = '0.00' if retval == '' else retval
+    card_payment_amt = float(retval)
+    total_payment = cash_payment_amt + card_payment_amt
+    balance_amt = total_payment - invoice_amt
+    popup_payment.Element('-CASH-PAYMENT-').update(value= "{:.2f}".format(cash_payment_amt))   
+    popup_payment.Element('-CARD-PAYMENT-').update(value= "{:.2f}".format(card_payment_amt))   
+    popup_payment.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amt))   
+    popup_payment.Element('-TOTAL-PAYMENT-').update(value= "{:.2f}".format(total_payment))   
+    popup_payment.Element('-BALANCE-AMT-').update(value= "{:.2f}".format(balance_amt))           
+    
+
+def event_mobile_number_entered(popup_payment):
+    mobile_number = popup_payment.Element('-MOBILE-NO-').get()
+    if mobile_number != '':
+        cust_name, loyalty_pts = get_cust_details(mobile_number)
+        if cust_name != '':
+            print('cust:', mobile_number, cust_name, loyalty_pts)
+            popup_payment.Element('-CUST-NAME-').update(value= cust_name)
+            popup_payment.Element('-AVAILABLE-PT-').update(value= loyalty_pts)            
+        else:
+            sg.popup('Customer not found',keep_on_top = True)
+            popup_payment.Element('-MOBILE-NO-').update(value='0000000000')
+            popup_payment.Element('-MOBILE-NO-').SetFocus() 
+
+
+def event_payment_ok_clicked(popup_payment):
+    retval = 0
+    mobile_number = popup_payment.Element('-MOBILE-NO-').get()
+    net_amt = float(popup_payment.Element('-NET-AMT-').get())
+    retval = popup_payment.Element('-DISCOUNT-AMT-').get()
+    retval = '0.00' if retval == '' else retval    
+    discount_amt = float(retval)
+    invoice_amt = net_amt - discount_amt
+    retval = popup_payment.Element('-INVOICE-AMT-').get()
+    retval = '0.00' if retval == '' else retval
+    invoice_amt = float(retval)
+    retval = popup_payment.Element('-CASH-PAYMENT-').get()
+    retval = '0.00' if retval == '' else retval
+    cash_payment_amt = float(retval)
+    retval = popup_payment.Element('-CARD-PAYMENT-').get()
+    retval = '0.00' if retval == '' else retval
+    card_payment_amt = float(retval)
+    if mobile_number == '' or (cash_payment_amt == '' and card_payment_amt == ''):
+        sg.popup('Mobile number and one of the Payment is mandatory',keep_on_top = True)
+    else:
+        total_payment = cash_payment_amt + card_payment_amt
+        balance_amt = total_payment - invoice_amt
+        popup_payment.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amt))   
+        popup_payment.Element('-TOTAL-PAYMENT-').update(value= "{:.2f}".format(total_payment))   
+        popup_payment.Element('-BALANCE-AMT-').update(value= "{:.2f}".format(balance_amt))
+        
+
+def event_paid_clicked(popup_payment):
+    net_amt = float(popup_payment.Element('-NET-AMT-').get())
+    retval = popup_payment.Element('-DISCOUNT-AMT-').get()
+    retval = '0.00' if retval == '' else retval    
+    discount_amt = float(retval)
+    invoice_amt = net_amt - discount_amt
+    retval = popup_payment.Element('-INVOICE-AMT-').get()
+    retval = '0.00' if retval == '' else retval
+    invoice_amt = float(retval)
+    retval = popup_payment.Element('-CASH-PAYMENT-').get()
+    retval = '0.00' if retval == '' else retval
+    cash_payment_amt = float(retval)
+    retval = popup_payment.Element('-CARD-PAYMENT-').get()
+    retval = '0.00' if retval == '' else retval
+    card_payment_amt = float(retval)
+    
+
+def get_cust_details(mobile_number):
+    customer_name = ''
+    loyalty_points = 0
+    db_pos_sql_stmt = "SELECT customer_name, loyalty_points from tabCustomer where mobile_number = %s"
+    db_pos_sql_data = (mobile_number,)
+    try:
+        db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
+    except mariadb.Error as db_err:
+        print(f"POS database error - 001: {db_err}")       
+        db_pos_conn.close()
+        sys.exit(1)
+            
+    db_cust_row = db_pos_cur.fetchone()
+    if db_cust_row is None:
+        return '', 0
+            
+    customer_name = db_cust_row[0]
+    loyalty_points = db_cust_row[1]
+    return customer_name, loyalty_points
 
 
 ######
 # Save the Invoice to DB
 def save_invoice():
+    invoice_number = window.Element('-INVOICE_NO-').get()
+    if invoice_number != '':
+        return
     reference_number = window.Element('-REFERENCE_NO-').get()
     if reference_number == '' and len(list_items) > 0:
         insert_invoice()
@@ -144,7 +410,7 @@ def insert_invoice():
     try:
         db_pos_cur.execute(db_pos_sql_stmt)
     except mariadb.Error as db_err:
-        print(f"POS database error: {db_err}")       
+        print(f"POS database error - 002: {db_err}")       
         db_pos_conn.close()
         sys.exit(1)
     print('ref no')
@@ -167,7 +433,7 @@ def insert_invoice():
     try:
         db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
     except mariadb.Error as db_err:
-        print(f"POS database error: {db_err}")    
+        print(f"POS database error - 003: {db_err}")    
         db_pos_conn.rollback()
         db_pos_conn.close()
         sys.exit(1)
@@ -177,11 +443,11 @@ def insert_invoice():
         item_count += 1
         item_code = row_item[0]
         qty = row_item[4]
-        selling_price = row_item[6]
+        selling_price = row_item[5]
         cgst_tax_rate = row_item[10]
         sgst_tax_rate = row_item[11]
         name = reference_number + f"{item_count:04d}"
-        print(name)
+        print('InvoiceItem:', name, ':', item_code)
 
         db_pos_sql_stmt = ("INSERT INTO `tabInvoice Item` (name, parent, item_code, qty, standard_selling_price, applied_selling_price, cgst_tax_rate, sgst_tax_rate)"
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)")
@@ -189,7 +455,7 @@ def insert_invoice():
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error1: {db_err}")    
+            print(f"POS database error - 004: {db_err}")    
             db_pos_conn.rollback()
             db_pos_conn.close()
             sys.exit(1)    
@@ -213,17 +479,16 @@ def update_invoice():
     try:
         db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
     except mariadb.Error as db_err:
-        print(f"POS database error: {db_err}")    
+        print(f"POS database error - 005: {db_err}")    
         db_pos_conn.rollback()
         db_pos_conn.close()
         sys.exit(1)
-    print('here1', reference_number)
     db_pos_sql_stmt = ("DELETE FROM `tabInvoice Item` WHERE parent = '" + reference_number + "'")
     
     try:
         db_pos_cur.execute(db_pos_sql_stmt)
     except mariadb.Error as db_err:
-        print(f"POS database error: {db_err}")    
+        print(f"POS database error - 006: {db_err}")    
         db_pos_conn.rollback()
         db_pos_conn.close()
         sys.exit(1)
@@ -234,11 +499,11 @@ def update_invoice():
         item_count += 1
         item_code = row_item[0]
         qty = row_item[4]
-        selling_price = row_item[6]
+        selling_price = row_item[5]
         cgst_tax_rate = row_item[10]
         sgst_tax_rate = row_item[11]
         name = reference_number + f"{item_count:04d}"
-        print(name)
+        print('updating InvoiceItem:', name, ':', item_code)
 
         db_pos_sql_stmt = ("INSERT INTO `tabInvoice Item` (name, parent, item_code, qty, standard_selling_price, applied_selling_price, cgst_tax_rate, sgst_tax_rate)"
                             "VALUES (%s, %s, %s, %s, %s, %s, %s, %s)")
@@ -246,7 +511,7 @@ def update_invoice():
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")    
+            print(f"POS database error - 007: {db_err}")    
             db_pos_conn.rollback()
             db_pos_conn.close()
             sys.exit(1)
@@ -263,7 +528,7 @@ def delete_invoice():
     try:
         db_pos_cur.execute(db_pos_sql_stmt)
     except mariadb.Error as db_err:
-        print(f"POS database error: {db_err}")    
+        print(f"POS database error - 008: {db_err}")    
         db_pos_conn.rollback()
         db_pos_conn.close()
         sys.exit(1)
@@ -272,7 +537,7 @@ def delete_invoice():
     try:
         db_pos_cur.execute(db_pos_sql_stmt)
     except mariadb.Error as db_err:
-        print(f"POS database error: {db_err}")    
+        print(f"POS database error - 009: {db_err}")    
         db_pos_conn.rollback()
         db_pos_conn.close()
         sys.exit(1)
@@ -303,27 +568,28 @@ def clear_invoice():
     window.Element('-INVOICE_NO-').update(value='')
     window.Element('-REFERENCE_NO-').update(value='')
     window.Element('-MOBILE_NO-').update(value='')
+    window.Element('-STATUS-').update(value='UNPAID', text_color = 'Red')
 
     
 def goto_previous_invoice():
     print('prev')
     reference_number = window.Element('-REFERENCE_NO-').get()
     if (reference_number == ''):
-        db_pos_sql_stmt = ("SELECT name, posting_date, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
+        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
         try:
             db_pos_cur.execute(db_pos_sql_stmt)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")       
+            print(f"POS database error - 010: {db_err}")       
             db_pos_conn.close()
             sys.exit(1)
     else:
-        db_pos_sql_stmt = ("SELECT name, posting_date, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice where name < %s)")
+        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice where name < %s)")
         db_pos_sql_data = (reference_number,)
 
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")       
+            print(f"POS database error - 011: {db_err}")       
             db_pos_conn.close()
             sys.exit(1)
     
@@ -331,21 +597,26 @@ def goto_previous_invoice():
     if db_invoice_row is None:
         print('Invoice not found')
     else:
-        print('here1 ', db_invoice_row[0])
+        window.Element('-REFERENCE_NO-').update(value= '')
+        window.Element('-INVOICE_NO-').update(value= '')
+        window.Element('-MOBILE_NO-').update(value= '')
+        window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')       
         reference_number = db_invoice_row[0]
         window.Element('-REFERENCE_NO-').update(value= reference_number)
+        invoice_number = db_invoice_row[1]
+        window.Element('-INVOICE_NO-').update(value= invoice_number)       
         mobile_number = db_invoice_row[2]
         window.Element('-MOBILE_NO-').update(value= mobile_number)
+        if invoice_number:
+            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')               
         db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
-        print(db_pos_sql_stmt)
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")       
+            print(f"POS database error - 012: {db_err}")       
             db_pos_conn.close()
             sys.exit(1)
-        print('here2 ', db_invoice_row[0])
             
         db_items = db_pos_cur.fetchall()
         row_item = []
@@ -358,17 +629,19 @@ def goto_previous_invoice():
             uom = db_item_row[3]
             qty = db_item_row[4]
             selling_price = db_item_row[5]
+            print('price:', selling_price)
             cgst_tax_rate = db_item_row[7]
             sgst_tax_rate = db_item_row[8]
             selling_amount = float(qty) * float(selling_price)
             tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
             tax_amount = selling_amount * tax_rate / 100
             net_amount = selling_amount + tax_amount  
+            row_item = []
             row_item.append(item_code)  
             row_item.append(barcode)  
             row_item.append(item_name)  
             row_item.append(uom)  
-            row_item.append(qty)  
+            row_item.append("{:.2f}".format(qty))  
             row_item.append("{:.2f}".format(selling_price))  
             row_item.append("{:.2f}".format(selling_amount))  
             row_item.append("{:.2f}".format(tax_rate))  
@@ -378,6 +651,7 @@ def goto_previous_invoice():
             row_item.append("{:.2f}".format(sgst_tax_rate))  
             list_items.append(row_item)
             window.Element('-TABLE-').update(values=list_items)
+
         sum_item_list()
 
 
@@ -387,13 +661,13 @@ def goto_next_invoice():
     if (reference_number == ''):
         return
     else:
-        db_pos_sql_stmt = ("SELECT name, posting_date, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select min(name) from tabInvoice where name > %s)")
+        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select min(name) from tabInvoice where name > %s)")
         db_pos_sql_data = (reference_number,)
 
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")       
+            print(f"POS database error - 013: {db_err}")       
             db_pos_conn.close()
             sys.exit(1)
     
@@ -401,21 +675,27 @@ def goto_next_invoice():
     if db_invoice_row is None:
         print('Invoice not found')
     else:
-        print('here1 ', db_invoice_row[0])
+        window.Element('-REFERENCE_NO-').update(value= '')
+        window.Element('-INVOICE_NO-').update(value= '')
+        window.Element('-MOBILE_NO-').update(value= '')   
+        window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')               
         reference_number = db_invoice_row[0]
         window.Element('-REFERENCE_NO-').update(value= reference_number)
+        invoice_number = db_invoice_row[1]
+        window.Element('-INVOICE_NO-').update(value= invoice_number)        
         mobile_number = db_invoice_row[2]
         window.Element('-MOBILE_NO-').update(value= mobile_number)
+        if invoice_number:
+            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green') 
         db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         print(db_pos_sql_stmt)
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")       
+            print(f"POS database error - 014: {db_err}")       
             db_pos_conn.close()
             sys.exit(1)
-        print('here2 ', db_invoice_row[0])
             
         db_items = db_pos_cur.fetchall()
         row_item = []
@@ -428,6 +708,8 @@ def goto_next_invoice():
             uom = db_item_row[3]
             qty = db_item_row[4]
             selling_price = db_item_row[5]
+            print('price:', selling_price, ' ', db_item_row[5])
+            
             cgst_tax_rate = db_item_row[7]
             sgst_tax_rate = db_item_row[8]
             selling_amount = float(qty) * float(selling_price)
@@ -436,28 +718,29 @@ def goto_next_invoice():
             net_amount = selling_amount + tax_amount  
             row_item.append(item_code)  
             row_item.append(barcode)  
+            row_item = []
             row_item.append(item_name)  
             row_item.append(uom)  
-            row_item.append(qty)  
-            row_item.append("{:.2f}".format(selling_price))  
+            row_item.append("{:.2f}".format(qty))  
+            row_item.append("{:.2f}".format(selling_price))
             row_item.append("{:.2f}".format(selling_amount))  
             row_item.append("{:.2f}".format(tax_rate))  
             row_item.append("{:.2f}".format(tax_amount))  
             row_item.append("{:.2f}".format(net_amount))  
             row_item.append("{:.2f}".format(cgst_tax_rate))  
-            row_item.append("{:.2f}".format(sgst_tax_rate))  
+            row_item.append("{:.2f}".format(sgst_tax_rate)) 
             list_items.append(row_item)
             window.Element('-TABLE-').update(values=list_items)
         sum_item_list()       
     
 def goto_last_invoice():
     print('last')
-    db_pos_sql_stmt = ("SELECT name, posting_date, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
+    db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
 
     try:
         db_pos_cur.execute(db_pos_sql_stmt)
     except mariadb.Error as db_err:
-        print(f"POS database error: {db_err}")       
+        print(f"POS database error - 015: {db_err}")       
         db_pos_conn.close()
         sys.exit(1)
     
@@ -465,18 +748,25 @@ def goto_last_invoice():
     if db_invoice_row is None:
         print('Invoice not found')
     else:
-        print('here1 ', db_invoice_row[0])
+        window.Element('-REFERENCE_NO-').update(value= '')
+        window.Element('-INVOICE_NO-').update(value= '')
+        window.Element('-MOBILE_NO-').update(value= '')   
+        window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')               
         reference_number = db_invoice_row[0]
         window.Element('-REFERENCE_NO-').update(value= reference_number)
+        invoice_number = db_invoice_row[1]
+        window.Element('-INVOICE_NO-').update(value= invoice_number)        
         mobile_number = db_invoice_row[2]
         window.Element('-MOBILE_NO-').update(value= mobile_number)
+        if invoice_number:
+            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')               
         db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         print(db_pos_sql_stmt)
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")       
+            print(f"POS database error - 016: {db_err}")       
             db_pos_conn.close()
             sys.exit(1)
         print('here2 ', db_invoice_row[0])
@@ -499,11 +789,12 @@ def goto_last_invoice():
             print(tax_rate, cgst_tax_rate, sgst_tax_rate)
             tax_amount = selling_amount * tax_rate / 100
             net_amount = selling_amount + tax_amount  
+            row_item = []
             row_item.append(item_code)  
             row_item.append(barcode)  
             row_item.append(item_name)  
             row_item.append(uom)  
-            row_item.append(qty)  
+            row_item.append("{:.2f}".format(qty))  
             row_item.append("{:.2f}".format(selling_price))  
             row_item.append("{:.2f}".format(selling_amount))  
             row_item.append("{:.2f}".format(tax_rate))  
@@ -518,12 +809,12 @@ def goto_last_invoice():
 
 def goto_first_invoice():
     print('first')
-    db_pos_sql_stmt = ("SELECT name, posting_date, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select min(name) from tabInvoice)")
+    db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select min(name) from tabInvoice)")
 
     try:
         db_pos_cur.execute(db_pos_sql_stmt)
     except mariadb.Error as db_err:
-        print(f"POS database error1: {db_err}")       
+        print(f"POS database error - 017: {db_err}")       
         db_pos_conn.close()
         sys.exit(1)
     
@@ -531,27 +822,35 @@ def goto_first_invoice():
     if db_invoice_row is None:
         print('Invoice not found')
     else:
-        print('here1 ', db_invoice_row[0])
+        window.Element('-REFERENCE_NO-').update(value= '')
+        window.Element('-INVOICE_NO-').update(value= '')
+        window.Element('-MOBILE_NO-').update(value= '')
+        window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')       
         reference_number = db_invoice_row[0]
         window.Element('-REFERENCE_NO-').update(value= reference_number)
+        invoice_number = db_invoice_row[1]
+        window.Element('-INVOICE_NO-').update(value= invoice_number)       
         mobile_number = db_invoice_row[2]
         window.Element('-MOBILE_NO-').update(value= mobile_number)
+        if invoice_number:
+            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')               
         db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate, inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         print(db_pos_sql_stmt)
         try:
             db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error2: {db_err}")       
+            print(f"POS database error - 018: {db_err}")       
             db_pos_conn.close()
             sys.exit(1)
-        print('here2 ', db_invoice_row[0])
             
         db_items = db_pos_cur.fetchall()
         row_item = []
         list_items.clear()
         
         for db_item_row in db_items:
+            print('\ndb_item_row:', db_item_row)
+
             item_code = db_item_row[0]
             item_name = db_item_row[1]
             barcode = db_item_row[2]
@@ -564,11 +863,12 @@ def goto_first_invoice():
             tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
             tax_amount = selling_amount * tax_rate / 100
             net_amount = selling_amount + tax_amount  
+            row_item = []
             row_item.append(item_code)  
             row_item.append(barcode)  
             row_item.append(item_name)  
             row_item.append(uom)  
-            row_item.append(qty)  
+            row_item.append("{:.2f}".format(qty))  
             row_item.append("{:.2f}".format(selling_price))  
             row_item.append("{:.2f}".format(selling_amount))  
             row_item.append("{:.2f}".format(tax_rate))  
@@ -576,8 +876,11 @@ def goto_first_invoice():
             row_item.append("{:.2f}".format(net_amount))  
             row_item.append("{:.2f}".format(cgst_tax_rate))  
             row_item.append("{:.2f}".format(sgst_tax_rate))  
+            print('\nrow_item:', row_item)
+
             list_items.append(row_item)
-            window.Element('-TABLE-').update(values=list_items)
+        window.Element('-TABLE-').update(values=list_items)
+        print('\nlist_items:', list_items)
         sum_item_list()       
 
 
@@ -624,16 +927,16 @@ layout_column_1 = [
         [
             [
                 sg.Text('Invoice No:', size=(8,1),  font=("Helvetica", 12)),
-                sg.Input(key='-INVOICE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='SINV-0010' ,font=("Helvetica", 12),size=(10,1)),
+                sg.Input(key='-INVOICE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='' ,font=("Helvetica", 12),size=(10,1)),
                 sg.Text('Reference No:', size=(8,1),  font=("Helvetica", 12)),
                 sg.Input(key='-REFERENCE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='' ,font=("Helvetica", 12),size=(10,1)),
                 sg.Text('Mobile No:', size=(8,1),  font=("Helvetica", 12)),
-                sg.Input(key='-MOBILE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='0000000000' ,font=("Helvetica", 12),size=(15,1)),
-                sg.Text('UNPAID', size=(7,1),font=("Helvetica", 15)),
-                sg.Button('BEGN\n<<', size=(6, 2), font='Calibri 12 bold', key='BEGN', button_color = pad_button_color),
-                sg.Button('PREV\n<', size=(6, 2), font='Calibri 12 bold', key='PREV', button_color = pad_button_color),
-                sg.Button('NEXT\n>', size=(6, 2), font='Calibri 12 bold', key='NEXT', button_color = pad_button_color),    
-                sg.Button('END\n>>', size=(6, 2), font='Calibri 12 bold', key='END', button_color = pad_button_color),    
+                sg.Input(key='-MOBILE_NO-',readonly=True, disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89' ,default_text='' ,font=("Helvetica", 12),size=(15,1)),
+                sg.Text(key='-STATUS-', size=(7,1),font=("Helvetica", 15)),
+                sg.Button('BEGN\nHome', size=(6, 2), font='Calibri 12 bold', key='BEGN', button_color = pad_button_color),
+                sg.Button('PREV\nPgUp', size=(6, 2), font='Calibri 12 bold', key='PREV', button_color = pad_button_color),
+                sg.Button('NEXT\nPgDn', size=(6, 2), font='Calibri 12 bold', key='NEXT', button_color = pad_button_color),    
+                sg.Button('END\nEnd', size=(6, 2), font='Calibri 12 bold', key='END', button_color = pad_button_color),    
             ]
         ], size = (985,60), vertical_alignment = 'top', pad = None)    
     ],
@@ -672,20 +975,20 @@ layout_column_1 = [
         [
             [
                 sg.Button('Help\nF1', size=(13, 2), font='Helvetica 11 bold', key='F1', button_color = function_button_color),
-                sg.Button('F2\nDel Item', size=(13, 2), font='Helvetica 11 bold', key='F2', button_color = function_button_color),
-                sg.Button('F3\nFind Item', size=(13, 2), font='Helvetica 11 bold', key='F3', button_color = function_button_color),
-                sg.Button('F4\nChange Quantity', size=(13, 2), font='Helvetica 11 bold', key='F4', button_color = function_button_color),
-                sg.Button('F5\nChange Price', size=(13, 2), font='Helvetica 11 bold', key='F5', button_color = function_button_color),
-                sg.Button('F6\nGet Weight', size=(13, 2), font='Helvetica 11 bold', key='F6', button_color = function_button_color)
+                sg.Button('Del Item\nF2', size=(13, 2), font='Helvetica 11 bold', key='F2', button_color = function_button_color),
+                sg.Button('Find Item\nF3', size=(13, 2), font='Helvetica 11 bold', key='F3', button_color = function_button_color),
+                sg.Button('Change Quantity\nF4', size=(13, 2), font='Helvetica 11 bold', key='F4', button_color = function_button_color),
+                sg.Button('Change Price\nF5', size=(13, 2), font='Helvetica 11 bold', key='F5', button_color = function_button_color),
+                sg.Button('Get Weight\nF6', size=(13, 2), font='Helvetica 11 bold', key='F6', button_color = function_button_color)
             ],
             [
-                sg.Button('F7\nNew Invoice', size=(13, 2), font='Helvetica 11 bold', key='F7', button_color = function_button_color),
-                sg.Button('F8\nDelete Invoice', size=(13, 2), font='Helvetica 11 bold', key='F8', button_color = function_button_color),
-                sg.Button('F9\nFind Customer', size=(13, 2), font='Helvetica 11 bold', key='F9', button_color = function_button_color),
-                sg.Button('F10\nList Invoices', size=(13, 2), font='Helvetica 11 bold', key='F10', button_color = function_button_color),
-                sg.Button('F11\nPrint Invoice', size=(13, 2), font='Helvetica 11 bold', key='F11', button_color = function_button_color),
-                sg.Button('F12\nPayment', size=(13, 2), font='Helvetica 11 bold', key='F12', button_color = function_button_color),
-                sg.Button('Esc\nExit', size=(13, 2), font='Helvetica 11 bold', key='ESC', button_color = function_button_color)
+                sg.Button('New Invoice\nF7', size=(13, 2), font='Helvetica 11 bold', key='F7', button_color = function_button_color),
+                sg.Button('Delete Invoice\nF8', size=(13, 2), font='Helvetica 11 bold', key='F8', button_color = function_button_color),
+                sg.Button('Find Customer\nF9', size=(13, 2), font='Helvetica 11 bold', key='F9', button_color = function_button_color),
+                sg.Button('List Invoices\nF10', size=(13, 2), font='Helvetica 11 bold', key='F10', button_color = function_button_color),
+                sg.Button('Print Invoice\nF11', size=(13, 2), font='Helvetica 11 bold', key='F11', button_color = function_button_color),
+                sg.Button('Payment\nF12', size=(13, 2), font='Helvetica 11 bold', key='F12', button_color = function_button_color),
+                sg.Button('Exit\nEsc', size=(13, 2), font='Helvetica 11 bold', key='ESC', button_color = function_button_color)
             ]               
         ], size = (985,125), background_color = 'gray80', vertical_alignment = 'top', pad = None)    
     ]       
@@ -856,6 +1159,7 @@ window['NEXT'].Widget.config(takefocus=0)
 ######
 # Set focus to Barcode (first field)                   
 window.Element('-BARCODE-NB-').SetFocus() 
+window.Element('-STATUS-').update(value='UNPAID', text_color = 'Red') 
 
 
 ######
@@ -896,7 +1200,7 @@ try:
     print("POS database connected")
 
 except mariadb.Error as db_err:
-    print(f"POS database error: {db_err}")
+    print(f"POS database error - 019: {db_err}")
     sys.exit(1)
     
 db_pos_cur = db_pos_conn.cursor()
@@ -907,7 +1211,8 @@ db_pos_cur = db_pos_conn.cursor()
 prev_event = ''
 while True:
     event, values = window.read()
-    print('eventm=', event,'\nvalues=',values)
+    #print('eventm=', event,'\nvalues=',values)
+    print('eventm=', event)
 
     if event == sg.WIN_CLOSED:
         window.close()
@@ -942,13 +1247,17 @@ while True:
         inp_val += event[1]
         window.Element('-BARCODE-NB-').update(value = inp_val)
 
+    '''
     if event == 'FULL-STOP' and focus_element == '-BARCODE-NB-':
         inp_val = window.Element('-BARCODE-NB-').get()
         inp_val += '.'
         window.Element('-BARCODE-NB-').update(value = inp_val)
-
+    '''
+    
     if event in ('\t', 'TAB') and prev_event == '-BARCODE-NB-':
-        proc_barcode(str(values['-BARCODE-NB-']))
+        invoice_number = window.Element('-INVOICE_NO-').get()       
+        if invoice_number == '':    
+            proc_barcode(str(values['-BARCODE-NB-']))
          
     if event in ('\t', 'TAB') and prev_event == '-ITEM_NAME-':
         window['-TABLE-'].Widget.config(takefocus=1)
@@ -959,34 +1268,37 @@ while True:
             window['-TABLE-'].Widget.see(table_row)  # scroll to show i
 
     if event in ('F2:113', 'F2') and prev_event == '-TABLE-':
-        sel_row = values['-TABLE-'][0]
-        print('Selected ', sel_row)
-        list_items = window.Element('-TABLE-').get()
-        print('Values ', list_items[sel_row])
-        list_items.pop(sel_row)
-        print('Length ', len(list_items))
-        if len(list_items) > 0:
-            window.Element('-TABLE-').update(values=list_items)        
-            window['-TABLE-'].Widget.selection_set(1)  # move selection
-            window['-TABLE-'].Widget.focus(1)  # move focus
-            window['-TABLE-'].Widget.see(1)  # scroll to show i  
-        if len(list_items) == 0:
-            window.Element('-TABLE-').update(values=[])        
-            window.Element('-BARCODE-NB-').SetFocus() 
-        sum_item_list()
+        invoice_number = window.Element('-INVOICE_NO-').get()       
+        if invoice_number == '':   
+            sel_row = values['-TABLE-'][0]
+            print('Selected ', sel_row)
+            list_items = window.Element('-TABLE-').get()
+            print('Values ', list_items[sel_row])
+            list_items.pop(sel_row)
+            print('Length ', len(list_items))
+            if len(list_items) > 0:
+                window.Element('-TABLE-').update(values=list_items)        
+                window['-TABLE-'].Widget.selection_set(1)  # move selection
+                window['-TABLE-'].Widget.focus(1)  # move focus
+                window['-TABLE-'].Widget.see(1)  # scroll to show i  
+            if len(list_items) == 0:
+                window.Element('-TABLE-').update(values=[])        
+                window.Element('-BARCODE-NB-').SetFocus() 
+            sum_item_list()
                     
     if event in ('F4:115', 'F4') and prev_event == '-TABLE-':
-        sel_row = values['-TABLE-'][0]
-        print('Selected ', sel_row)
-        list_items = window.Element('-TABLE-').get()
-        print('Values ', list_items[sel_row])
-        open_popup_chg_qty(sel_row, list_items[sel_row])
-        window['-TABLE-'].Widget.config(takefocus=1)
-        table_row = window['-TABLE-'].Widget.get_children()[sel_row]
-        window['-TABLE-'].Widget.selection_set(table_row)  # move selection
-        window['-TABLE-'].Widget.focus(table_row)  # move focus
-        window['-TABLE-'].Widget.see(table_row)  # scroll to show i
-        sum_item_list()
+        invoice_number = window.Element('-INVOICE_NO-').get()   
+        if invoice_number == '':
+            sel_row = values['-TABLE-'][0]
+            list_items = window.Element('-TABLE-').get()
+            print('initial:',row_item,':',str(list_items))
+            open_popup_chg_qty(sel_row)
+            window['-TABLE-'].Widget.config(takefocus=1)
+            table_row = window['-TABLE-'].Widget.get_children()[sel_row]
+            window['-TABLE-'].Widget.selection_set(table_row)  # move selection
+            window['-TABLE-'].Widget.focus(table_row)  # move focus
+            window['-TABLE-'].Widget.see(table_row)  # scroll to show i
+            sum_item_list()
 
     if event in ('F7:118', 'F7'):
         save_invoice()
@@ -994,11 +1306,22 @@ while True:
         window.Element('-BARCODE-NB-').SetFocus()         
 
     if event in ('F8:119', 'F8'):
-        delete_invoice()
-        clear_invoice()
-        window.Element('-BARCODE-NB-').SetFocus()         
+        invoice_number = window.Element('-INVOICE_NO-').get()       
+        if invoice_number == '':  
+            confirm_delete = sg.popup_ok_cancel('Invoice will be Deleted',keep_on_top = True)
+            if confirm_delete == 'OK':
+                delete_invoice()
+                clear_invoice()
+                window.Element('-BARCODE-NB-').SetFocus()         
 
-    if event in ('BEGN'):
+    if event in ('F12:123', 'F12'):
+        invoice_number = window.Element('-INVOICE_NO-').get()  
+        invoice_amt = window.Element('-INVOICE-AMT-').get()  
+        if invoice_number == '' and float(invoice_amt) > 0:
+            open_popup_payment()
+            window.Element('-BARCODE-NB-').SetFocus()         
+            
+    if event in ('Home:36', 'BEGN'):
         save_invoice()
         goto_first_invoice()
         window.Element('-BARCODE-NB-').SetFocus()         
@@ -1013,7 +1336,7 @@ while True:
         goto_next_invoice()
         window.Element('-BARCODE-NB-').SetFocus()         
 
-    if event in ('END'):
+    if event in ('End:35', 'END'):
         save_invoice()
         goto_last_invoice()
         window.Element('-BARCODE-NB-').SetFocus()         
