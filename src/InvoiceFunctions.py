@@ -1,7 +1,10 @@
+import PySimpleGUI as sg
 import mariadb
 import datetime
 import json
 import sys
+import os
+
 from pynput.keyboard import Key, Controller
 from DBOperations import DBOperations
 from DBManager import DBManager
@@ -27,46 +30,80 @@ class InvoiceFunctions:
     list_items = []
     now = datetime.datetime.now()
 
+    def isInteger(self,inp):
+        try:
+            val = int(inp)
+            return True
+        except ValueError:
+            return False
 
-    def proc_barcode(self,barcode, winObj):
-        if len(barcode) > 12:
-            print('barcode=', barcode)
-            # db_pos_cur.execute("SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = '" + barcode + "'")
-            # db_item_row = db_pos_cur.fetchone()
-            db_item_row = self.dbOperation.getItemDetails(barcode)
-            if db_item_row is None:
-                print('Item not found')
-            else:
-                item_code = db_item_row[0]
-                item_name = db_item_row[1]
-                uom = db_item_row[2]
-                qty = 1
-                selling_price = db_item_row[3]
-                cgst_tax_rate = db_item_row[4]
-                sgst_tax_rate = db_item_row[5]
-                print(item_name)
-                row_item = []
-                row_item.append(item_code)
-                row_item.append(barcode)
-                row_item.append(item_name)
-                row_item.append(uom)
-                row_item.append(qty)
-                row_item.append("{:.2f}".format(selling_price))
-                selling_amount = float(qty) * float(selling_price)
-                row_item.append("{:.2f}".format(selling_amount))
-                tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
-                row_item.append(tax_rate)
-                tax_amount = selling_amount * tax_rate / 100
-                row_item.append("{:.2f}".format(tax_amount))
-                net_price = selling_amount + tax_amount
-                row_item.append("{:.2f}".format(net_price))
-                self.list_items.append(row_item)
-                print(self.list_items)
-                winObj.Element('-TABLE-').update(values=self.list_items)
-                winObj.Element('-BARCODE-NB-').update(value='')
-                winObj.Element('-ITEMNAME-').update(value='')
-                winObj.Element('-BARCODE-NB-').set_focus()
-                self.sum_item_list(winObj)
+    def isFloat(self,inp):
+        try:
+            val = float(inp)
+            return True
+        except ValueError:
+            return False
+
+
+
+
+    def proc_barcode(self,barcode, window):
+
+        if not len(barcode) == 13:
+            return
+
+        if not self.isInteger(barcode):
+            window.Element('-BARCODE-NB-').update(value='')
+            window.Element('-BARCODE-NB-').set_focus()
+            return
+
+        db_pos_sql_stmt = "SELECT item_code, item_name, uom, selling_price, cgst_tax_rate, sgst_tax_rate from tabItem where barcode = %s"
+        db_pos_sql_data = (barcode,)
+        db_item_row = None
+        try:
+            db_item_row = self.db.query_with_param(db_pos_sql_stmt, db_pos_sql_data)
+        except mariadb.Error as db_err:
+            print(f"POS database error - 001: {db_err}")
+            #db_pos_conn.close()
+            sys.exit(1)
+
+        if db_item_row is None:
+            sg.popup('Item not found', keep_on_top=True)
+            window.Element('-BARCODE-NB-').update(value='')
+            window.Element('-BARCODE-NB-').set_focus()
+            return
+
+        item_code = db_item_row[0]
+        item_name = db_item_row[1]
+        uom = db_item_row[2]
+        qty = 1
+        selling_price = db_item_row[3]
+        cgst_tax_rate = db_item_row[4]
+        sgst_tax_rate = db_item_row[5]
+        row_item = []
+        row_item.append(item_code)
+        row_item.append(barcode)
+        row_item.append(item_name)
+        row_item.append(uom)
+        row_item.append("{:.2f}".format(qty))
+        row_item.append("{:.2f}".format(selling_price))
+        selling_amount = float(qty) * float(selling_price)
+        row_item.append("{:.2f}".format(selling_amount))
+        tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
+        row_item.append(tax_rate)
+        tax_amount = selling_amount * tax_rate / 100
+        row_item.append("{:.2f}".format(tax_amount))
+        net_price = selling_amount + tax_amount
+        row_item.append("{:.2f}".format(net_price))
+        row_item.append(cgst_tax_rate)
+        row_item.append(sgst_tax_rate)
+        self.list_items.append(row_item)
+        window.Element('-TABLE-').update(values=self.list_items)
+        window.Element('-BARCODE-NB-').update(value='')
+        window.Element('-ITEMNAME-').update(value='')
+        window.Element('-BARCODE-NB-').set_focus()
+        self.sum_item_list(window)
+
 
     def sum_item_list(self,winObj):
         line_items = 0
@@ -97,7 +134,7 @@ class InvoiceFunctions:
         reference_number = winObj.Element('-REFERENCE_NO-').get()
         if reference_number == '' and len(self.list_items) > 0:
             self.insert_invoice(winObj)
-        else:
+        elif len(self.list_items) > 0:
             self.update_invoice(winObj)
 
 
@@ -111,7 +148,10 @@ class InvoiceFunctions:
             db_item_row = self.db.query_one(db_pos_sql_stmt)
             #db_pos_cur.execute(db_pos_sql_stmt)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")
+            print(f"POS database error 1: {db_err}")
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
             self.db.close()
             sys.exit(1)
         print('ref no')
@@ -137,11 +177,15 @@ class InvoiceFunctions:
             self.db.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
             print(f"POS database error: {db_err}")
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(exc_type, fname, exc_tb.tb_lineno)
             #self.db.rollback()
             #self.db.close()
             sys.exit(1)
 
         item_count = 0
+        print('complete list', self.list_items)
         for row_item in self.list_items:
             item_count += 1
             item_code = row_item[0]
@@ -199,7 +243,6 @@ class InvoiceFunctions:
 
     def update_invoice(self,window):
         print('update')
-        reference_number = window.Element('-REFERENCE_NO-').get()
         mobile_number = window.Element('-MOBILE_NO-').get()
         total_amount = window.Element('-TOTAL-PRICE-').get()
         invoice_amount = window.Element('-INVOICE-AMT-').get()
@@ -217,7 +260,7 @@ class InvoiceFunctions:
         try:
             self.db.execute(db_pos_sql_stmt, db_pos_sql_data)
         except mariadb.Error as db_err:
-            print(f"POS database error: {db_err}")
+            print(f"POS database error 2: {db_err}")
             #db_pos_conn.rollback()
             #db_pos_conn.close()
             sys.exit(1)
@@ -496,9 +539,10 @@ class InvoiceFunctions:
                 row_item.append("{:.2f}".format(net_amount))
                 row_item.append("{:.2f}".format(cgst_tax_rate))
                 row_item.append("{:.2f}".format(sgst_tax_rate))
-                self.db.list_items.append(row_item)
+                self.list_items.append(row_item)
                 window.Element('-TABLE-').update(values=self.list_items)
             self.sum_item_list(window)
+
 
     def goto_first_invoice(self,window):
         print('first')
@@ -565,3 +609,7 @@ class InvoiceFunctions:
                 self.list_items.append(row_item)
                 window.Element('-TABLE-').update(values=self.list_items)
             self.sum_item_list(window)
+
+    def sortTable(self):
+        self.list_items.sort(key=lambda i: i[2])  # sort on third column ascending
+        self.list_items.sort(key=lambda i: i[0], reverse=True)  # sort on third column descending

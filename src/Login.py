@@ -34,6 +34,7 @@ input_fld: dict = {'readonly': 'True', 'disabled_readonly_text_color': 'gray',
                    'disabled_readonly_background_color': 'gray89', 'size': (20, 1)}
 
 loginLayout = loginLayout()
+invoiceLayout = InvoiceLayout()
 
 header = loginLayout.header()
 footer = loginLayout.footer()
@@ -43,13 +44,14 @@ kb = Controller()
 w, h = sg.Window.get_screen_size()
 win_w = w
 win_h = h
+sg.theme('SystemDefault')
 
-
-def open_popup_chg_qty(row_item, list_item, winObj):
-    layout_chg_qty = InvoiceLayout.layout_chg_qty(list_item,list_item)
+def open_popup_chg_qty(row_item, list_items, winObj,invfun):
+    layout_chg_qty = invoiceLayout.layout_chg_qty(row_item,list_items)
     popup_chg_qty = sg.Window("Change Quantity", layout_chg_qty, location=(300, 250), size=(350, 180), modal=True,
                               finalize=True, return_keyboard_events=True, keep_on_top=True)
-    popup_chg_qty.Element('-EXISTING-QTY-').update(value=str(list_item[4]))
+    popup_chg_qty.Element('-EXISTING-QTY-').update(value=str(list_items[row_item][4]))
+    popup_chg_qty.Element('-NEW-QTY-').update(value='')
 
     while True:
         event, values = popup_chg_qty.read()
@@ -58,23 +60,32 @@ def open_popup_chg_qty(row_item, list_item, winObj):
         if event in ("Exit", '-CHG-QTY-ESC-', 'Escape:27') or event == sg.WIN_CLOSED:
             break
         if event == "-CHG-QTY-OK-" or event == "F12:123":
-            applied_qty = popup_chg_qty.Element('-NEW-QTY-').get()
-            if (applied_qty.isnumeric() or applied_qty.replace('.', '', 1).isdigit()):
-                tax_rate = InvoiceLayout.list_items[row_item][7]
-                selling_price = InvoiceLayout.list_items[row_item][6]
-                selling_amount = float(applied_qty) * float(selling_price)
-                tax_amount = selling_amount * float(tax_rate) / 100
-                net_price = selling_amount + tax_amount
-                InvoiceLayout.list_items[row_item][4] = applied_qty
-                InvoiceLayout.list_items[row_item][6] = "{:.2f}".format(selling_amount)
-                InvoiceLayout.list_items[row_item][8] = "{:.2f}".format(tax_amount)
-                InvoiceLayout.list_items[row_item][9] = "{:.2f}".format(net_price)
-                winObj.Element('-TABLE-').update(values=InvoiceLayout.list_items, select_rows=[row_item])
-                # sum_item_list()
-                break
-
+            event_chg_qty_ok_clicked( invoiceLayout, popup_chg_qty, row_item,winObj,invfun)
+            break
     popup_chg_qty.close()
 
+
+def event_chg_qty_ok_clicked(invoiceLayout , popup_chg_qty, row_item, winObj,invfun):
+    applied_qty = 0
+    existing_qty = popup_chg_qty.Element('-EXISTING-QTY-').get()
+    applied_qty = popup_chg_qty.Element('-NEW-QTY-').get()
+    if (applied_qty.isnumeric() or applied_qty.replace('.', '', 1).isdigit()):
+        if float(applied_qty) == float(existing_qty):
+            sg.popup('Quantity cannot be the same',keep_on_top = True)
+            popup_chg_qty.Element('-NEW-QTY-').update(value='')
+        else:
+            tax_rate = invfun.list_items[row_item][7]
+            selling_price = invfun.list_items[row_item][5]
+            selling_amount = float(applied_qty) * float(selling_price)
+            tax_amount = selling_amount * float(tax_rate) / 100
+            net_price = selling_amount + tax_amount
+            print('applied_qty:',applied_qty)
+            invfun.list_items[row_item][4] = "{:.2f}".format(float(applied_qty))
+            invfun.list_items[row_item][6] = "{:.2f}".format(selling_amount)
+            invfun.list_items[row_item][8] = "{:.2f}".format(tax_amount)
+            invfun.list_items[row_item][9] = "{:.2f}".format(net_price)
+            print('after:',row_item,':',str(invfun.list_items))
+            winObj.Element('-TABLE-').update(values=invfun.list_items, select_rows=[row_item])
 
 
 def predict_text(searchItem, listItem):
@@ -232,17 +243,19 @@ def invoiceEntry():
             invfun.sum_item_list(invWindow)
 
         if event in ('F4:115', 'F4') and prev_event == '-TABLE-':
-            sel_row = values['-TABLE-'][0]
-            print('Selected ', sel_row)
-            list_items = invWindow.Element('-TABLE-').get()
-            print('Values ', list_items[sel_row])
-            open_popup_chg_qty(sel_row, list_items[sel_row], invWindow)
-            invWindow['-TABLE-'].Widget.config(takefocus=1)
-            table_row = invWindow['-TABLE-'].Widget.get_children()[sel_row]
-            invWindow['-TABLE-'].Widget.selection_set(table_row)  # move selection
-            invWindow['-TABLE-'].Widget.focus(table_row)  # move focus
-            invWindow['-TABLE-'].Widget.see(table_row)  # scroll to show i
-            invfun.sum_item_list(invWindow)
+            invoice_number = invWindow.Element('-INVOICE_NO-').get()
+            if invoice_number == '':
+                sel_row = values['-TABLE-'][0]
+                list_items = invWindow.Element('-TABLE-').get()
+                print('initial:', str(list_items))
+                open_popup_chg_qty(sel_row,list_items,invWindow,invfun)
+                invWindow['-TABLE-'].Widget.config(takefocus=1)
+                table_row = invWindow['-TABLE-'].Widget.get_children()[sel_row]
+                invWindow['-TABLE-'].Widget.selection_set(table_row)  # move selection
+                invWindow['-TABLE-'].Widget.focus(table_row)  # move focus
+                invWindow['-TABLE-'].Widget.see(table_row)  # scroll to show i
+                invfun.sum_item_list(invWindow)
+
 
         if event in ('F7:118', 'F7'):
             invfun.save_invoice(invWindow)
