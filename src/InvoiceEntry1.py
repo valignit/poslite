@@ -107,7 +107,7 @@ def sum_item_list():
     window.Element('-TOTAL-PRICE-').update(value="{:.2f}".format(total_price))
     window.Element('-TOTAL-TAX-').update(value="{:.2f}".format(total_tax))
     window.Element('-NET-PRICE-').update(value="{:.2f}".format(total_net_price))
-    window.Element('-INVOICE-AMT-').update(value="{:.2f}".format(total_net_price))
+    #window.Element('-INVOICE-AMT-').update(value="{:.2f}".format(total_net_price))
     window.Element('-TOTAL-CGST-').update(value="{:.2f}".format(total_cgst))
     window.Element('-TOTAL-SGST-').update(value="{:.2f}".format(total_sgst))
 
@@ -214,7 +214,7 @@ def open_popup_payment():
          sg.Button('Exit\nEsc', size=(8, 2), font='Calibri 12 bold', key='-PAYMENT-ESC-', button_color = pad_button_color)]
     ]   
 
-    popup_payment = sg.Window("Payment", layout_payment, location=(300,250), size=(700,350), modal=True, finalize=True,return_keyboard_events=True, keep_on_top = True)
+    popup_payment = sg.Window("Payment", layout_payment, location=(160,160), size=(700,350), modal=True, finalize=True,return_keyboard_events=True, keep_on_top = True)
 
     initialize_payment_screen(popup_payment)
     
@@ -272,7 +272,7 @@ def initialize_payment_screen(popup_payment):
     popup_payment.Element('-INVOICE-AMT-').update(value="{:.2f}".format(rounded_amt))
     popup_payment.Element('-CASH-PAYMENT-').update(value="{:.2f}".format(rounded_amt))
     popup_payment.Element('-CARD-PAYMENT-').update(value="{:.2f}".format(0))
-    popup_payment.Element('-TOTAL-PAYMENT-').update(value="{:.2f}".format(0))
+    popup_payment.Element('-TOTAL-PAYMENT-').update(value="{:.2f}".format(rounded_amt))
     popup_payment.Element('-BALANCE-AMT-').update(value="{:.2f}".format(0))
     popup_payment.Element('-MOBILE-NO-').SetFocus() 
     popup_payment.Element('-MOBILE-NO-').update(value='0000000000')
@@ -289,18 +289,21 @@ def event_discount_entered(popup_payment):
     popup_payment.Element('-TOTAL-PAYMENT-').update(value= "{:.2f}".format(total_payment))   
     
 
-
 def event_cash_card_payment_entered(popup_payment):
     retval = 0
     retval = popup_payment.Element('-INVOICE-AMT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     invoice_amt = float(retval)
     retval = popup_payment.Element('-CASH-PAYMENT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     cash_payment_amt = float(retval)
     retval = popup_payment.Element('-CARD-PAYMENT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     card_payment_amt = float(retval)
+    if card_payment_amt > invoice_amt:
+        sg.popup('Card amount cannot be more than Invoice amount',keep_on_top = True)
+        return
+    
     total_payment = cash_payment_amt + card_payment_amt
     balance_amt = total_payment - invoice_amt
     popup_payment.Element('-CASH-PAYMENT-').update(value= "{:.2f}".format(cash_payment_amt))   
@@ -329,43 +332,115 @@ def event_payment_ok_clicked(popup_payment):
     mobile_number = popup_payment.Element('-MOBILE-NO-').get()
     net_amt = float(popup_payment.Element('-NET-AMT-').get())
     retval = popup_payment.Element('-DISCOUNT-AMT-').get()
-    retval = '0.00' if retval == '' else retval    
+    retval = '0.00' if retval == '' or not retval else retval    
     discount_amt = float(retval)
     invoice_amt = net_amt - discount_amt
     retval = popup_payment.Element('-INVOICE-AMT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     invoice_amt = float(retval)
     retval = popup_payment.Element('-CASH-PAYMENT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     cash_payment_amt = float(retval)
     retval = popup_payment.Element('-CARD-PAYMENT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     card_payment_amt = float(retval)
-    if mobile_number == '' or (cash_payment_amt == '' and card_payment_amt == ''):
-        sg.popup('Mobile number and one of the Payment is mandatory',keep_on_top = True)
-    else:
-        total_payment = cash_payment_amt + card_payment_amt
-        balance_amt = total_payment - invoice_amt
-        popup_payment.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amt))   
-        popup_payment.Element('-TOTAL-PAYMENT-').update(value= "{:.2f}".format(total_payment))   
-        popup_payment.Element('-BALANCE-AMT-').update(value= "{:.2f}".format(balance_amt))
+    if mobile_number == '':
+        sg.popup('Mobile number is mandatory',keep_on_top = True)
+        return
+    if cash_payment_amt == 0 and card_payment_amt == 0:
+        sg.popup('One of the Payment is mandatory',keep_on_top = True)
+        return
+    if card_payment_amt > invoice_amt:
+        sg.popup('Card amount cannot be more than Invoice amount',keep_on_top = True)
+        return       
         
+    total_payment = cash_payment_amt + card_payment_amt
+    balance_amt = total_payment - invoice_amt
+    if balance_amt > 0:
+        sg.popup('Invoice amount / Balance unpaid',keep_on_top = True)
+        return
 
+    reference_number = window.Element('-REFERENCE_NO-').get()
+    retval = popup_payment.Element('-CREDIT-NOTE-').get()
+    retval = '0.00' if retval == '' or not retval else retval
+    credit_note_amt = float(retval)
+    retval = popup_payment.Element('-REDEEM-PT-').get()
+    retval = '0' if retval == '' or not retval else retval
+    loyalty_points_redeemed = int(retval)
+    retval = popup_payment.Element('-REDEEM-AMT-').get()
+    retval = '0.00' if retval == '' or not retval else retval
+    loyalty_redeemed_amt = float(retval)
+    retval = popup_payment.Element('-TOTAL-PAYMENT-').get()
+    retval = '0.00' if retval == '' or not retval else retval
+    paid_amt = float(retval)
+    
+
+    db_pos_sql_stmt = "SELECT nextval('INVOICE_NUMBER')"
+    try:
+        db_pos_cur.execute(db_pos_sql_stmt)
+    except mariadb.Error as db_err:
+        print(f"POS database error - 002: {db_err}")       
+        db_pos_conn.close()
+        sys.exit(1)
+            
+    db_item_row = db_pos_cur.fetchone()
+    if db_item_row is None:
+        print('Sequence not found')
+    else:
+        invoice_number = db_item_row[0]
+    print(invoice_number)
+    
+    db_pos_sql_stmt = ("UPDATE tabInvoice SET invoice_number=%s, posting_date=now(), customer=%s, discount_amount=%s, credit_note_amount=%s, loyalty_points_redeemed=%s, loyalty_redeemed_amount=%s, invoice_amount=%s, paid_amount=%s, modified=now(), modified_by=%s"
+                        " WHERE name = %s")
+    db_pos_sql_data = (invoice_number, mobile_number, discount_amt, credit_note_amt, loyalty_points_redeemed, loyalty_redeemed_amt, invoice_amt, paid_amt, ws_erp_user, reference_number)
+    try:
+        db_pos_cur.execute(db_pos_sql_stmt, db_pos_sql_data)
+    except mariadb.Error as db_err:
+        print(f"POS database error - 005: {db_err}")    
+        db_pos_conn.rollback()
+        db_pos_conn.close()
+        sys.exit(1)    
+
+    db_pos_conn.commit()
+    
+    popup_payment.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amt))   
+    popup_payment.Element('-TOTAL-PAYMENT-').update(value= "{:.2f}".format(total_payment))   
+    popup_payment.Element('-BALANCE-AMT-').update(value= "{:.2f}".format(balance_amt))
+
+    window.Element('-INVOICE_NO-').update(value=invoice_number)
+    window.Element('-INVOICE-AMT-').update(value="{:.2f}".format(invoice_amt))
+    window.Element('-DISCOUNT-').update(value="{:.2f}".format(discount_amt))
+    window.Element('-PAID-AMT-').update(value="{:.2f}".format(total_payment))
+    window.Element('-MOBILE_NO-').update(value=mobile_number)
+    window.Element('-STATUS-').update(value='PAID', text_color = 'Green')
+
+        
 def event_paid_clicked(popup_payment):
     net_amt = float(popup_payment.Element('-NET-AMT-').get())
     retval = popup_payment.Element('-DISCOUNT-AMT-').get()
-    retval = '0.00' if retval == '' else retval    
+    retval = '0.00' if retval == '' or not retval else retval    
     discount_amt = float(retval)
     invoice_amt = net_amt - discount_amt
     retval = popup_payment.Element('-INVOICE-AMT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     invoice_amt = float(retval)
     retval = popup_payment.Element('-CASH-PAYMENT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     cash_payment_amt = float(retval)
     retval = popup_payment.Element('-CARD-PAYMENT-').get()
-    retval = '0.00' if retval == '' else retval
+    retval = '0.00' if retval == '' or not retval else retval
     card_payment_amt = float(retval)
+    total_payment = cash_payment_amt + card_payment_amt
+    balance_amt = total_payment - invoice_amt
+    if balance_amt:
+        cash_payment_amt = cash_payment_amt - balance_amt
+        balance_amt = 0
+    total_payment = cash_payment_amt + card_payment_amt
+        
+    popup_payment.Element('-CASH-PAYMENT-').update(value= "{:.2f}".format(cash_payment_amt))   
+    popup_payment.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amt))   
+    popup_payment.Element('-TOTAL-PAYMENT-').update(value= "{:.2f}".format(total_payment))   
+    popup_payment.Element('-BALANCE-AMT-').update(value= "{:.2f}".format(balance_amt))
     
 
 def get_cust_details(mobile_number):
@@ -458,8 +533,10 @@ def insert_invoice():
             print(f"POS database error - 004: {db_err}")    
             db_pos_conn.rollback()
             db_pos_conn.close()
-            sys.exit(1)    
+            sys.exit(1)            
     db_pos_conn.commit()
+    window.Element('-REFERENCE_NO-').update(value=reference_number)
+    
 
 
 def update_invoice():
@@ -472,6 +549,7 @@ def update_invoice():
     sgst_tax_amount = window.Element('-TOTAL-SGST-').get()
     terminal_id = window.Element('-TERMINAL-').get()  
     reference_number = window.Element('-REFERENCE_NO-').get()  
+    print('invoice:', invoice_amount)
     
     db_pos_sql_stmt = ("UPDATE tabInvoice SET posting_date=now(), customer=%s, total_amount=%s, cgst_tax_amount=%s, sgst_tax_amount=%s, invoice_amount=%s, terminal_id=%s, creation=now(), owner=%s"
                         " WHERE name = %s")
@@ -552,8 +630,10 @@ def clear_invoice():
     total_price  = 0
     total_tax  = 0
     total_net_price  = 0
+    discount_amt = 0
     total_cgst  = 0
     total_sgst  = 0
+    total_payment = 0
     list_items.clear()
     row_item = []
     window.Element('-LINE-ITEMS-').update(value=str(line_items))
@@ -564,10 +644,12 @@ def clear_invoice():
     window.Element('-INVOICE-AMT-').update(value="{:.2f}".format(total_net_price))
     window.Element('-TOTAL-CGST-').update(value="{:.2f}".format(total_cgst))
     window.Element('-TOTAL-SGST-').update(value="{:.2f}".format(total_sgst))
+    window.Element('-DISCOUNT-').update(value="{:.2f}".format(discount_amt))
+    window.Element('-PAID-AMT-').update(value="{:.2f}".format(total_payment))    
     window.Element('-TABLE-').update(values=list_items)     
     window.Element('-INVOICE_NO-').update(value='')
     window.Element('-REFERENCE_NO-').update(value='')
-    window.Element('-MOBILE_NO-').update(value='')
+    window.Element('-MOBILE_NO-').update(value='0000000000')
     window.Element('-STATUS-').update(value='UNPAID', text_color = 'Red')
 
     
@@ -575,7 +657,7 @@ def goto_previous_invoice():
     print('prev')
     reference_number = window.Element('-REFERENCE_NO-').get()
     if (reference_number == ''):
-        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
+        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount, discount_amount, paid_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
         try:
             db_pos_cur.execute(db_pos_sql_stmt)
         except mariadb.Error as db_err:
@@ -583,7 +665,7 @@ def goto_previous_invoice():
             db_pos_conn.close()
             sys.exit(1)
     else:
-        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice where name < %s)")
+        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount, discount_amount, paid_amount from tabInvoice WHERE name = (select max(name) from tabInvoice where name < %s)")
         db_pos_sql_data = (reference_number,)
 
         try:
@@ -606,9 +688,28 @@ def goto_previous_invoice():
         invoice_number = db_invoice_row[1]
         window.Element('-INVOICE_NO-').update(value= invoice_number)       
         mobile_number = db_invoice_row[2]
+        
+        retval = db_invoice_row[6]
+        retval = '0.00' if retval == '' or not retval else retval
+        invoice_amount = float(retval)
+        
+        retval = db_invoice_row[7]
+        retval = '0.00' if retval == '' or not retval else retval
+        discount_amount = float(retval)
+
+        retval = db_invoice_row[8]
+        retval = '0.00' if retval == '' or not retval else retval        
+        paid_amount = float(retval)
+        
         window.Element('-MOBILE_NO-').update(value= mobile_number)
         if invoice_number:
-            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')               
+            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')   
+        else:
+            window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')
+        window.Element('-DISCOUNT-').update(value= "{:.2f}".format(discount_amount))
+        window.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amount))       
+        window.Element('-PAID-AMT-').update(value= "{:.2f}".format(paid_amount))            
+
         db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         try:
@@ -661,7 +762,7 @@ def goto_next_invoice():
     if (reference_number == ''):
         return
     else:
-        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select min(name) from tabInvoice where name > %s)")
+        db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount, discount_amount, paid_amount from tabInvoice WHERE name = (select min(name) from tabInvoice where name > %s)")
         db_pos_sql_data = (reference_number,)
 
         try:
@@ -684,9 +785,28 @@ def goto_next_invoice():
         invoice_number = db_invoice_row[1]
         window.Element('-INVOICE_NO-').update(value= invoice_number)        
         mobile_number = db_invoice_row[2]
+        
+        retval = db_invoice_row[6]
+        retval = '0.00' if retval == '' or not retval else retval
+        invoice_amount = float(retval)
+        
+        retval = db_invoice_row[7]
+        retval = '0.00' if retval == '' or not retval else retval
+        discount_amount = float(retval)
+
+        retval = db_invoice_row[8]
+        retval = '0.00' if retval == '' or not retval else retval        
+        paid_amount = float(retval)
+        
         window.Element('-MOBILE_NO-').update(value= mobile_number)
         if invoice_number:
-            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green') 
+            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')   
+        else:
+            window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')
+        window.Element('-DISCOUNT-').update(value= "{:.2f}".format(discount_amount))
+        window.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amount))       
+        window.Element('-PAID-AMT-').update(value= "{:.2f}".format(paid_amount))            
+
         db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         print(db_pos_sql_stmt)
@@ -716,9 +836,9 @@ def goto_next_invoice():
             tax_rate = float(cgst_tax_rate) + float(sgst_tax_rate)
             tax_amount = selling_amount * tax_rate / 100
             net_amount = selling_amount + tax_amount  
+            row_item = []            
             row_item.append(item_code)  
             row_item.append(barcode)  
-            row_item = []
             row_item.append(item_name)  
             row_item.append(uom)  
             row_item.append("{:.2f}".format(qty))  
@@ -735,7 +855,7 @@ def goto_next_invoice():
     
 def goto_last_invoice():
     print('last')
-    db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
+    db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount, discount_amount, paid_amount from tabInvoice WHERE name = (select max(name) from tabInvoice)")
 
     try:
         db_pos_cur.execute(db_pos_sql_stmt)
@@ -757,9 +877,28 @@ def goto_last_invoice():
         invoice_number = db_invoice_row[1]
         window.Element('-INVOICE_NO-').update(value= invoice_number)        
         mobile_number = db_invoice_row[2]
+        
+        retval = db_invoice_row[6]
+        retval = '0.00' if retval == '' or not retval else retval
+        invoice_amount = float(retval)
+        
+        retval = db_invoice_row[7]
+        retval = '0.00' if retval == '' or not retval else retval
+        discount_amount = float(retval)
+
+        retval = db_invoice_row[8]
+        retval = '0.00' if retval == '' or not retval else retval        
+        paid_amount = float(retval)
+        
         window.Element('-MOBILE_NO-').update(value= mobile_number)
         if invoice_number:
-            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')               
+            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')   
+        else:
+            window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')
+        window.Element('-DISCOUNT-').update(value= "{:.2f}".format(discount_amount))
+        window.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amount))       
+        window.Element('-PAID-AMT-').update(value= "{:.2f}".format(paid_amount))            
+
         db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate,inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         print(db_pos_sql_stmt)
@@ -809,7 +948,7 @@ def goto_last_invoice():
 
 def goto_first_invoice():
     print('first')
-    db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount from tabInvoice WHERE name = (select min(name) from tabInvoice)")
+    db_pos_sql_stmt = ("SELECT name, invoice_number, customer, total_amount, cgst_tax_amount, sgst_tax_amount, invoice_amount, discount_amount, paid_amount from tabInvoice WHERE name = (select min(name) from tabInvoice)")
 
     try:
         db_pos_cur.execute(db_pos_sql_stmt)
@@ -825,15 +964,34 @@ def goto_first_invoice():
         window.Element('-REFERENCE_NO-').update(value= '')
         window.Element('-INVOICE_NO-').update(value= '')
         window.Element('-MOBILE_NO-').update(value= '')
-        window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')       
+
         reference_number = db_invoice_row[0]
-        window.Element('-REFERENCE_NO-').update(value= reference_number)
         invoice_number = db_invoice_row[1]
-        window.Element('-INVOICE_NO-').update(value= invoice_number)       
         mobile_number = db_invoice_row[2]
+        
+        retval = db_invoice_row[6]
+        retval = '0.00' if retval == '' or not retval else retval
+        invoice_amount = float(retval)
+        
+        retval = db_invoice_row[7]
+        retval = '0.00' if retval == '' or not retval else retval
+        discount_amount = float(retval)
+
+        retval = db_invoice_row[8]
+        retval = '0.00' if retval == '' or not retval else retval        
+        paid_amount = float(retval)
+        
+        window.Element('-REFERENCE_NO-').update(value= reference_number)
+        window.Element('-INVOICE_NO-').update(value= invoice_number)       
         window.Element('-MOBILE_NO-').update(value= mobile_number)
         if invoice_number:
-            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')               
+            window.Element('-STATUS-').update(value= 'PAID', text_color = 'Lime Green')   
+        else:
+            window.Element('-STATUS-').update(value= 'UNPAID', text_color = 'Red')
+        window.Element('-DISCOUNT-').update(value= "{:.2f}".format(discount_amount))
+        window.Element('-INVOICE-AMT-').update(value= "{:.2f}".format(invoice_amount))       
+        window.Element('-PAID-AMT-').update(value= "{:.2f}".format(paid_amount))            
+        
         db_pos_sql_stmt = ("SELECT inv_item.item_code, item_name, barcode, uom, qty,standard_selling_price, applied_selling_price, inv_item.cgst_tax_rate, inv_item.sgst_tax_rate from `tabInvoice Item` inv_item, tabItem item WHERE inv_item.parent = %s and inv_item.item_code = item.item_code")
         db_pos_sql_data = (reference_number,)
         print(db_pos_sql_stmt)
@@ -850,7 +1008,6 @@ def goto_first_invoice():
         
         for db_item_row in db_items:
             print('\ndb_item_row:', db_item_row)
-
             item_code = db_item_row[0]
             item_name = db_item_row[1]
             barcode = db_item_row[2]
@@ -881,7 +1038,7 @@ def goto_first_invoice():
             list_items.append(row_item)
         window.Element('-TABLE-').update(values=list_items)
         print('\nlist_items:', list_items)
-        sum_item_list()       
+        sum_item_list()        
 
 
 ##############################
@@ -965,7 +1122,7 @@ layout_column_1 = [
                      alternating_row_color='lightsteelBlue1',
                      num_rows=12,
                      display_row_numbers=True,
-                     col_widths=[8, 15, 20, 5, 5, 10, 10, 8, 10, 10]
+                     col_widths=[10, 15, 20, 5, 5, 10, 10, 8, 10, 10]
                      )            
             ]        
         ], size = (985,340), vertical_alignment = 'top', pad = None)    
@@ -999,9 +1156,9 @@ layout_column_2 = [
         sg.Column(
         [
             [
-                sg.Image(filename = 'company-logo.GIF')
+                sg.Image(filename = 'al-fareeda-logo.PNG')
             ]
-        ], size = (220,70), vertical_alignment = 'top', pad = None)    
+        ], size = (140,70), vertical_alignment = 'top', pad=(45,5))    
     ],
     [
         sg.Column(
@@ -1015,7 +1172,7 @@ layout_column_2 = [
                 sg.Input(key='-TOTAL-QTY-', readonly=True, justification="right", disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89', default_text='0.00' ,font=("Helvetica", 11), size=(12,1))
             ],
             [
-                sg.Text('Total Price:',  font=("Helvetica", 11),justification="right", size=(10,1)),
+                sg.Text('Total Amount:',  font=("Helvetica", 11),justification="right", size=(10,1)),
                 sg.Input(key='-TOTAL-PRICE-', readonly=True, justification="right", disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89', default_text='0.00' ,font=("Helvetica", 11),size=(12,1)),
             ],
             [
@@ -1031,7 +1188,7 @@ layout_column_2 = [
                 sg.Input(key='-TOTAL-TAX-', readonly=True, justification="right", disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89', default_text='0.00' , font=("Helvetica", 11), size=(12,1)),
             ],
             [
-                sg.Text('Net Price:', font=("Helvetica", 11),justification="right",size=(10,1)),
+                sg.Text('Net Amount:', font=("Helvetica", 11),justification="right",size=(10,1)),
                 sg.Input(key='-NET-PRICE-', readonly=True, justification="right", disabled_readonly_text_color=disabled_text_color, disabled_readonly_background_color='gray89', default_text='0.00' , font=("Helvetica", 11), size=(12,1)),
             ],
             [
@@ -1303,7 +1460,7 @@ while True:
     if event in ('F7:118', 'F7'):
         save_invoice()
         clear_invoice()
-        window.Element('-BARCODE-NB-').SetFocus()         
+        window.Element('-BARCODE-NB-').SetFocus()     
 
     if event in ('F8:119', 'F8'):
         invoice_number = window.Element('-INVOICE_NO-').get()       
@@ -1316,8 +1473,9 @@ while True:
 
     if event in ('F12:123', 'F12'):
         invoice_number = window.Element('-INVOICE_NO-').get()  
-        invoice_amt = window.Element('-INVOICE-AMT-').get()  
-        if invoice_number == '' and float(invoice_amt) > 0:
+        line_items = window.Element('-LINE-ITEMS-').get()  
+        if invoice_number == '' and int(line_items) > 0:
+            save_invoice()
             open_popup_payment()
             window.Element('-BARCODE-NB-').SetFocus()         
             
