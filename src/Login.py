@@ -88,6 +88,46 @@ def event_chg_qty_ok_clicked(invoiceLayout , popup_chg_qty, row_item, winObj,inv
             winObj.Element('-TABLE-').update(values=invfun.list_items, select_rows=[row_item])
 
 
+
+
+def open_popup_payment(invfun,winObj):
+    layout_payment = invoiceLayout.payment_layout()
+    popup_payment = sg.Window("Payment", layout_payment, location=(300,250), size=(700,350), modal=True, finalize=True,return_keyboard_events=True, keep_on_top = True)
+
+    invfun.initialize_payment_screen(popup_payment,winObj)
+
+    prev_event = ''
+    while True:
+        event, values = popup_payment.read()
+        print('eventc=', event)
+        if event in ('\t', 'TAB') and prev_event == '-DISCOUNT-AMT-':
+            invfun.event_discount_entered(popup_payment)
+
+        if event in ('\t', 'TAB') and prev_event == '-MOBILE-NO-':
+            invfun.event_mobile_number_entered(popup_payment)
+
+        if event in ('\t', 'TAB') and prev_event == '-CASH-PAYMENT-':
+            invfun.event_cash_card_payment_entered(popup_payment)
+
+        if event in ('\t', 'TAB') and prev_event == '-CARD-PAYMENT-':
+            invfun.event_cash_card_payment_entered(popup_payment)
+
+        if event in ("Exit", '-PAYMENT-ESC-', 'Escape:27') or event == sg.WIN_CLOSED:
+            break
+
+        if event == "-PAYMENT-OK-" or event == "F12:123":
+            invfun.event_payment_ok_clicked(popup_payment,winObj)
+            break
+
+        if event == "-PAID-" or event == "F12:123":
+            invfun.event_paid_clicked(popup_payment)
+
+        if event not in ('Up:38', 'Down:40', 'UP', 'DOWN', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0'):
+            prev_event = event
+
+    popup_payment.close()
+
+
 def predict_text(searchItem, listItem):
     print('recied= ', searchItem, listItem)
     pattern = re.compile('.*' + searchItem + '.*')
@@ -164,6 +204,7 @@ def invoiceEntry():
     invWindow = createInvoiceWin()
     invWindow.force_focus()
     invWindow['-BARCODE-NB-'].set_focus()
+    invWindow.Element('-STATUS-').update(value='UNPAID', text_color='Red')
     invWindow['-USERID-'].update(userid)
     invWindow['-TERMINAL-'].update(terminal)
     invWindow.bind('<Escape>', '')
@@ -215,7 +256,9 @@ def invoiceEntry():
             invWindow.Element('-BARCODE-NB-').update(value=inp_val)
 
         if event in ('\t', 'TAB') and prev_event == '-BARCODE-NB-':
-            invfun.proc_barcode(str(values['-BARCODE-NB-']), invWindow)
+            invoice_number = window.Element('-INVOICE_NO-').get()
+            if invoice_number == '':
+                invfun.proc_barcode(str(values['-BARCODE-NB-']), invWindow)
 
         if event in ('\t', 'TAB') and prev_event == '-ITEM_NAME-':
             invWindow['-TABLE-'].Widget.config(takefocus=1)
@@ -225,22 +268,26 @@ def invoiceEntry():
                 invWindow['-TABLE-'].Widget.focus(table_row)  # move focus
                 invWindow['-TABLE-'].Widget.see(table_row)  # scroll to show i
 
+
         if event in ('F2:113', 'F2') and prev_event == '-TABLE-':
-            sel_row = values['-TABLE-'][0]
-            print('Selected ', sel_row)
-            list_items = invWindow.Element('-TABLE-').get()
-            print('Values ', list_items[sel_row])
-            list_items.pop(sel_row)
-            print('Length ', len(list_items))
-            if len(list_items) > 0:
-                invWindow.Element('-TABLE-').update(values=list_items)
-                invWindow['-TABLE-'].Widget.selection_set(1)  # move selection
-                invWindow['-TABLE-'].Widget.focus(1)  # move focus
-                invWindow['-TABLE-'].Widget.see(1)  # scroll to show i
-            if len(list_items) == 0:
-                invWindow.Element('-TABLE-').update(values=[])
-                invWindow.Element('-BARCODE-NB-').SetFocus()
-            invfun.sum_item_list(invWindow)
+            invoice_number = invWindow.Element('-INVOICE_NO-').get()
+            if invoice_number == '':
+                sel_row = values['-TABLE-'][0]
+                print('Selected ', sel_row)
+                list_items = invWindow.Element('-TABLE-').get()
+                print('Values ', list_items[sel_row])
+                list_items.pop(sel_row)
+                print('Length ', len(list_items))
+                if len(list_items) > 0:
+                    invWindow.Element('-TABLE-').update(values=list_items)
+                    invWindow['-TABLE-'].Widget.selection_set(1)  # move selection
+                    invWindow['-TABLE-'].Widget.focus(1)  # move focus
+                    invWindow['-TABLE-'].Widget.see(1)  # scroll to show i
+                if len(list_items) == 0:
+                    invWindow.Element('-TABLE-').update(values=[])
+                    invWindow.Element('-BARCODE-NB-').SetFocus()
+                invfun.sum_item_list(invWindow)
+
 
         if event in ('F4:115', 'F4') and prev_event == '-TABLE-':
             invoice_number = invWindow.Element('-INVOICE_NO-').get()
@@ -263,9 +310,27 @@ def invoiceEntry():
             invWindow.Element('-BARCODE-NB-').SetFocus()
 
         if event in ('F8:119', 'F8'):
-            invfun.delete_invoice(invWindow)
-            invfun.clear_invoice(invWindow)
+            invoice_number = invWindow.Element('-INVOICE_NO-').get()
+            if invoice_number == '':
+                confirm_delete = sg.popup_ok_cancel('Invoice will be Deleted', keep_on_top=True)
+                if confirm_delete == 'OK':
+                    invfun.delete_invoice(invWindow)
+                    invfun.clear_invoice(invWindow)
+                    invWindow.Element('-BARCODE-NB-').SetFocus()
+
+        if event in ('F12:123', 'F12'):
+            invoice_number = invWindow.Element('-INVOICE_NO-').get()
+            invoice_amt = invWindow.Element('-INVOICE-AMT-').get()
+            if invoice_number == '' and float(invoice_amt) > 0:
+                invfun.save_invoice(invWindow)
+                open_popup_payment(invfun,invWindow)
+                invWindow.Element('-BARCODE-NB-').SetFocus()
+
+        if event in ('Home:36', 'BEGN'):
+            invfun.save_invoice(invWindow)
+            invfun.goto_first_invoice(invWindow)
             invWindow.Element('-BARCODE-NB-').SetFocus()
+
 
         if event in ('BEGN'):
             invfun.save_invoice(invWindow)
@@ -282,7 +347,7 @@ def invoiceEntry():
             invfun.goto_next_invoice(invWindow)
             invWindow.Element('-BARCODE-NB-').SetFocus()
 
-        if event in ('END'):
+        if event in ('End:35', 'END'):
             invfun.save_invoice(invWindow)
             invfun.goto_last_invoice(invWindow)
             invWindow.Element('-BARCODE-NB-').SetFocus()
