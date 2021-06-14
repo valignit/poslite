@@ -38,7 +38,18 @@ invoiceLayout = InvoiceLayout()
 
 header = loginLayout.header()
 footer = loginLayout.footer()
-buttonLayout = loginLayout.loginButtons()
+#buttonLayout = loginLayout.loginButtons()
+btm_btn: dict = {'size': (10, 2), 'font': 'Helvetica 11 bold'}
+buttonLayout = [
+                    sg.Column(
+                    [
+                        [
+                            sg.Button('F12\nSign In', key='-LoginOk-', **btm_btn),
+                            sg.Button('Esc-Exit', key='Exit', **btm_btn)
+                        ]
+                    ], pad=((50, 0), (50, 0), (50, 0), (50, 0)))
+                ]
+
 
 kb = Controller()
 w, h = sg.Window.get_screen_size()
@@ -423,16 +434,29 @@ layout = [
      sg.In(key='-LOGINPWD-', password_char='*', pad=((0, 0), (15, 0)), size=(20, 4))],
     [sg.Text('Terminal:', **txt_font, pad=((20, 5), (10, 0))),
      sg.In(key='-TERMINAL-', default_text=data['terminal_id'], **input_fld, pad=((0, 0), (15, 5)))],
-    [buttonLayout],
+    [
+        sg.Column(
+            [
+                [
+                    sg.Button('F12\nSign In', key='-LoginOk-', **btm_btn),
+                    sg.Button('Esc-Exit', key='Exit', **btm_btn)
+                ]
+            ], pad=((50, 0), (50, 0), (50, 0), (50, 0)))
+    ],
     [footer]
 ]
 
-window = sg.Window('Login Window', layout, enable_close_attempted_event=True, no_titlebar=True, keep_on_top=True,
+login_layout = loginLayout.login_page()
+
+
+
+window = sg.Window('Login Window', login_layout, enable_close_attempted_event=True, no_titlebar=True, keep_on_top=True,
                    size=(350, 450), return_keyboard_events=True, finalize=True)
 
 window.bind('<Escape>', exitPos())
 window.bind('<F12>', login())
 window.Element('-LOGINUSER-').set_focus()
+window.Element('-TERMINAL-').update(data['terminal_id'])
 
 userid = None
 userpwd = None
